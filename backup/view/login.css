@@ -1,0 +1,228 @@
+/* 기본 초기화 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif; /* 이미지와 유사한 폰트 사용 */
+}
+
+body {
+    height: 100vh;
+    background-color: #fff;
+    overflow: hidden; /* 스크롤 방지 */
+}
+
+.container {
+    display: flex;
+    width: 100%;
+    height: 100%;
+}
+
+/* --- 왼쪽 섹션 스타일 --- */
+.left-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff; /* 필요시 배경색 변경 */
+    text-align: center;
+}
+
+.left-section h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #000;
+    line-height: 1.2;
+    margin-bottom: 1rem;
+}
+
+.left-section p {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.image-box img {
+    max-width: 320px;
+    width: 100%;
+    object-fit: contain;
+    /* 3D 느낌을 위한 필터 (선택사항) */
+    filter: drop-shadow(10px 10px 20px rgba(0,0,0,0.1));
+}
+
+/* --- 오른쪽 섹션 스타일 --- */
+.right-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 450px;
+    padding: 2rem;
+}
+
+.login-wrapper h3 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin: 0 auti 2rem auto;
+    color: #333;
+    text-align: right; /* "Welcome..." 텍스트 위치 조정 */
+    width: 100%;
+    /* 이미지 상 텍스트가 토글 버튼 위에 위치하므로 정렬 맞춤 */
+    padding-right: 10px;
+}
+
+.form-title {
+    width: 100%;         /* 전체 너비 사용 */
+    text-align: center;  /* 텍스트 가운데 정렬 */
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem; /* 토글 버튼과의 간격 */
+    color: #333;
+}
+
+.hello {
+    text-align: center;  /* 텍스트 가운데 정렬 */
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem; /* 토글 버튼과의 간격 */
+    color: #333;
+}
+
+.description {
+    color: #666;
+    font-size: 0.95rem;
+    margin-bottom: 2.5rem;
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* 폼 스타일 */
+.input-group {
+    margin-bottom: 1.5rem;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #333;
+    font-size: 1rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px 20px;
+    border-radius: 50px;
+    border: 1px solid #578FCA;
+    outline: none;
+    font-size: 0.95rem;
+    transition: border-color 0.3s;
+}
+
+.input-group input:focus {
+    border-color: #A5C7EB;
+}
+
+.input-group input::placeholder {
+    color: #aaa;
+}
+
+/* 비밀번호 아이콘 래퍼 */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    padding-right: 45px; /* 아이콘 공간 확보 */
+}
+
+.toggle-password {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #333;
+    cursor: pointer;
+}
+
+/* 하단 옵션 (체크박스, 비번찾기) */
+.form-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 3rem;
+    font-size: 0.9rem;
+}
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #333;
+}
+
+.checkbox-container input {
+    margin-right: 8px;
+    accent-color: #333; /* 체크박스 색상 */
+    width: 16px;
+    height: 16px;
+}
+
+.forgot-pw {
+    color: #333;
+    text-decoration: none;
+    font-size: 0.85rem;
+}
+
+.submit-btn {
+    display: block;
+    width: 200px; /* 버튼 너비 설정 */
+    margin: 0 auto; /* 좌우 마진 auto로 중앙 정렬 */
+    padding: 15px;
+    background-color: #578FCA;
+    color: white;
+    border: none;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+    background-color: #3d968d;
+}
+
+/* 반응형 (모바일) */
+@media (max-width: 900px) {
+    body {
+        height: auto;
+        overflow-y: auto;
+    }
+    .container {
+        flex-direction: column;
+    }
+    .left-section {
+        padding: 50px 20px;
+    }
+    .left-section h1 {
+        font-size: 2.5rem;
+    }
+    .right-section {
+        padding: 50px 20px;
+    }
+    .toggle-container, .submit-btn {
+        margin-left: 0; /* 모바일에선 좌측 정렬 혹은 중앙 */
+        width: 100%;
+    }
+    .login-wrapper h3 {
+        text-align: center;
+        padding-right: 0;
+    }
+}
