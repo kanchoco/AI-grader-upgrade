@@ -20,7 +20,7 @@ FRONTEND_BUILD_PATH = os.path.join(BASE_DIR, "dist")
 app = Flask(
     __name__,
     static_folder=FRONTEND_BUILD_PATH,
-    static_url_path=""
+    static_url_path="frontend/dist"
 )
 
 CORS(app)
