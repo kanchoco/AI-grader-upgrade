@@ -70,6 +70,7 @@ def upload_excel():
     name_column = request.form.get("nameColumn")
     answer_column = request.form.get("answerColumn")
     criteria_raw = request.form.get("criteria")
+    rubric = request.form.get("rubric", "")
 
     if not project_name:
         return {"status": "error", "message": "프로젝트명 누락"}, 400
@@ -114,7 +115,8 @@ def upload_excel():
                 """),
                 {
                     "name": project_name,
-                    "criteria": json.dumps(criteria)
+                    "criteria": json.dumps(criteria),
+                    "prompt_text": rubric
                 }
             )
 
@@ -125,9 +127,9 @@ def upload_excel():
             for _, row in df.iterrows():
                 conn.execute(
                     sqlalchemy.text("""
-                        INSERT INTO studentDB
-                        (project_id, student_name, student_answer, created_at)
-                        VALUES (:pid, :name, :answer, NOW())
+                        INSERT INTO projectDB
+                        (project_name, criteria, prompt_text, created_at)
+                        VALUES (:name, :criteria, :prompt_text, NOW())
                     """),
                     {
                         "pid": project_id,
@@ -285,7 +287,7 @@ def ai_grade():
     with engine.connect() as conn:
         student = conn.execute(
             sqlalchemy.text("""
-                SELECT student_uid, student_answer
+                SELECT student_uid, student_answer, project_id
                 FROM studentDB
                 WHERE student_id = :id
             """),
@@ -297,9 +299,21 @@ def ai_grade():
 
         student_uid = student["student_uid"]
         essay = student["student_answer"]
+        project_id = student["project_id"]
+
+        project = conn.execute(
+            sqlalchemy.text("""
+                SELECT prompt_text
+                FROM projectDB
+                WHERE project_id = :pid
+            """),
+            {"pid": project_id}
+        ).mappings().fetchone()
+
+        prompt_text = project["prompt_text"] if project else ""
 
         # AI 채점
-        ai_result = run_ai_grading(essay)
+        ai_result = run_ai_grading(essay, prompt_text)
         score_uid = str(uuid.uuid4())
 
         # AI 점수 저장

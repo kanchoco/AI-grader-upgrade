@@ -29,7 +29,7 @@ def normalize_score(n):
     else:
         raise ValueError(f"점수 타입 오류: {type(n)}")
 
-    return max(1, min(10, score))  
+    return max(0, min(10, score))  
 
 
 
@@ -82,76 +82,37 @@ def validate(parsed: dict):
         parsed["rationales"][k] = r
         parsed["keySentences"][k] = ks
 
-def fallback_response():
+def fallback_response(reason: str = "모델 응답 오류"):
     return {
         "scores": {
             "scientificKnowledge": 1,
             "criticalThinking": 1
         },
         "rationales": {
-            "scientificKnowledge": ["모델 응답 오류로 기본값 적용함", "응답 형식 불안정함"],
-            "criticalThinking": ["모델 응답 오류로 기본값 적용함", "응답 형식 불안정함"]
+            "scientificKnowledge": [
+                f"{reason}로 기본 점수 적용함",
+                "형식 불안정으로 최소 점수 처리함"
+            ],
+            "criticalThinking": [
+                f"{reason}로 기본 점수 적용함",
+                "형식 불안정으로 최소 점수 처리함"
+            ]
         },
         "keySentences": {
-            "scientificKnowledge": ["원문 분석 실패", "원문 분석 실패"],
-            "criticalThinking": ["원문 분석 실패", "원문 분석 실패"]
+            "scientificKnowledge": [
+                "원문 분석 실패",
+                "원문 분석 실패"
+            ],
+            "criticalThinking": [
+                "원문 분석 실패",
+                "원문 분석 실패"
+            ]
         }
     }
 
 
-def analyze_essay(essay: str) -> dict:
-    rubric_prompt = f"""
-[역할]
-당신은 엄격하고 비판적인 대학 수준의 평가자입니다.
-학생의 에세이를 논리적 정합성과 과학적 정확성에 기반하여 냉정하게 평가하십시오.
-점수 인플레이션을 경계하고, 깐깐하게 채점하십시오.
-
-[답변 스타일 가이드]
-평가 근거(rationales)는 구어체를 사용하지 마십시오.
-'~함', '~임', '~부족함', '~타당함' 등 명사형 종결 어미(개조식)로 간결하게 작성하십시오.
-
-
-각 항목은 0~10점 사이의 정수로 평가합니다.
-
-0점 기준:
-- 평가 요소가 거의 충족되지 않음
-- 과학적 오류가 다수 존재함
-- 논리 구조가 형성되지 않음
-- 근거가 전혀 제시되지 않음
-
-점수를 매길 때는 아래 핵심 평가 요소를 종합적으로 고려하십시오.
-
-[채점 기준표]
-
-평가 영역 1. 수과학적 지식(Scientific Knowledge)
-[핵심 평가요소]
-- 개념 활용의 타당성: 원자력 발전과 관련된 과학 개념이나 핵심 용어를 적절하고 다양하게 활용하여,
-원자력 발전의 장점과 단점을 과학적으로 타당하게 설명하는가?
-- 개념의 정확성(오개념 여부): 과학 개념이나 핵심 용어를 정확하게 이해하고 있는가? 과학적으로
-잘못된 설명이나 사실 오류가 없는가? 이 때, 단순한 표현 미숙(오타와 같은 표현)과 개념 오류는
-구분하여 판단할 것
-- 설명의 구체성: 추상적 표현이 아닌 구체적 과학적 근거를 제시하는가? 수치, 비교, 구조적 설명 등을
-활용하는가?
-
-평가 영역 2. 비판적 사고력(Critical Thinking)
-[핵심 평가요소]
-- 논리적 흐름: 주장이 서론 →본론(근거, 설명) → 결론과 같은 구조로 자연스럽게 연결되는가? 글
-전체에 모순이 없는가?
-- 인과관계의 타당성: 원인과 결과를 적절히 연결하고 있는가? 단순 나열이 아니라 논증 구조를
-갖추었는가?
-- 근거의 충분성 및 반대 논거 고려: 주장을 지지하는 근거가 충분히 제시되는가? 근거가 주장과
-직접적으로 연결되는가? 자신의 입장에 대한 반대 가능성을 예상했는가? 그에 대한 대응 논리를
-제시하는가?
-- 심층적 고찰: 단순히 한 측면만이 아니라 다양한 관점에서 검토하는가?(경제성, 안전성, 환경성, 국가
-상황과 같은 다양한 측면)
-
-각 항목은 1~10점 사이의 정수로 평가합니다.
-각 점수에 대해 평가 근거 2개 이상과
-해당 근거를 뒷받침하는 원문 문장을 함께 제공합니다.
-
-각 항목은 반드시 독립적으로 평가하십시오.
-
-"""
+def analyze_essay(essay: str, rubric: str) -> dict:
+    rubric_prompt = rubric
 
     canon = normalize(essay)
 
@@ -221,14 +182,23 @@ def analyze_essay(essay: str) -> dict:
     try:
         parsed = json.loads(raw_text)
     except json.JSONDecodeError:
-        return fallback_response()
-    validate(parsed)
+        return fallback_response("JSON 파싱 실패")
+
+    try:
+        validate(parsed)
+    except Exception as e:
+        print("VALIDATE ERROR:", e)
+        return fallback_response(str(e))
 
     return parsed
 
 
-def run_ai_grading(essay_text: str):
-    parsed = analyze_essay(essay_text)
+def run_ai_grading(essay_text: str, rubric: str):
+    try:
+        parsed = analyze_essay(essay_text)
+    except Exception as e:
+        print("AI GRADING ERROR:", e)
+        parsed = fallback_response(str(e))
 
     return {
         "success": True,
