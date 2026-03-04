@@ -20,7 +20,7 @@ FRONTEND_BUILD_PATH = os.path.join(BASE_DIR, "dist")
 app = Flask(
     __name__,
     static_folder=FRONTEND_BUILD_PATH,
-    static_url_path="frontend/dist"
+    static_url_path=""
 )
 
 CORS(app)
@@ -51,6 +51,9 @@ def get_engine():
     )
 
 # API 영역
+@app.route("/")
+def serve():
+    return app.send_static_file("index.html")
 
 @app.post("/upload_excel")
 def upload_excel():
