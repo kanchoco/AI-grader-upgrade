@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI-Assisted Essay Review Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="login.css">
+</head>
+<body>
+    <div class="container">
+        <div class="left-section">
+            <div class="content-wrapper">
+                <h1>AI-Assisted<br>Essay Review</h1>
+                <p>Upload student data, select students,<br>and get AI-powered analysis.</p>
+                <div class="image-box">
+                    <img src="/assets/blood-report.png" alt="Essay Review 3D Icon">
+                </div>
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div class="login-wrapper">
+                <h2 class="hello">Welcome Back!</h2>
+                <p class="description">채점자 본인의 이름과 비밀번호를 입력해 주세요.</p>
+
+                <form class="login-form" id="loginForm">
+                    <div class="input-group">
+                        <label for="username">User name</label>
+                        <input type="text" id="username" placeholder="Enter your User name">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" placeholder="Enter your Password">
+                            <i class="fa-regular fa-eye-slash toggle-password"></i>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-container">
+                            <input type="checkbox">
+                            <span class="checkmark"></span>
+                            Remember me
+                        </label>
+                        <a href="#" class="forgot-pw">Forgot Password ?</a>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Login</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/controller/login.js"></script>
+</body>
+</html>

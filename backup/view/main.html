@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essay Review - Grading Workspace</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="main.css">
+</head>
+<body>
+    <header class="top-header">
+        <div class="logo">Logo</div> <button class="logout-btn" onclick="location.href='login.html'">Logout</button>
+    </header>
+
+    <div class="main-content">
+        <div class="search-section">
+            <div class="search-bar-wrapper">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="student-search" placeholder="채점 대상 입력 ( 최대 30개, ex.1-10 / 1,3,10 )">
+                <button class="search-btn" onclick="startGrading()">Search</button>
+            </div>
+        </div>
+
+        <div id="initial-message" class="empty-state-container">
+            <p class="empty-text">채점 대상 입력 시 이곳에 해당 학생의 답안과 채점 란이 나타납니다.</p>
+        </div>
+
+        <div id="grading-workspace" class="workspace hidden">
+            
+            <div class="left-panel">
+                <h3 class="panel-title">학생 답안 리스트 <span class="badge">3명</span></h3>
+                <div class="student-card active">
+                    <div class="card-header"><span class="student-id">Student #101</span></div>
+                    <div class="card-body">
+                        <p class="question-title">[논술 문제 1]</p>
+                        <p class="answer-text">원자력 발전은 에너지 효율이 높다는 장점이 있지만...</p>
+                    </div>
+                </div>
+                </div>
+
+            <div class="right-panel">
+                <div class="grading-form-container">
+                    <div class="form-header">
+                        <h3>전문가 채점</h3>
+                        <span class="status-badge">채점 중</span>
+                    </div>
+                    <div class="grading-criteria">
+                        <div class="criteria-item">
+                            <label>비판적 사고</label>
+                            <input type="number" placeholder="0">
+                        </div>
+                        <div class="criteria-item">
+                            <label>수과학적 지식</label>
+                            <input type="number" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn-save">점수 저장</button>
+                        <button class="btn-ai">AI 채점 결과 확인</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html>
