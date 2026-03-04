@@ -16,6 +16,10 @@ import io
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_BUILD_PATH = os.path.join(BASE_DIR, "dist")
 
+print(BASE_DIR)
+print(FRONTEND_BUILD_PATH)
+print(os.path.exists(FRONTEND_BUILD_PATH))
+
 # Flask app
 app = Flask(
     __name__,
