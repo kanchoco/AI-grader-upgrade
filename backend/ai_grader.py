@@ -111,8 +111,8 @@ def fallback_response(reason: str = "모델 응답 오류"):
     }
 
 
-def analyze_essay(essay: str, rubric: str) -> dict:
-    rubric_prompt = rubric
+def analyze_essay(essay: str, prompt_text: str) -> dict:
+    rubric_prompt = prompt_text
 
     canon = normalize(essay)
 
@@ -193,9 +193,9 @@ def analyze_essay(essay: str, rubric: str) -> dict:
     return parsed
 
 
-def run_ai_grading(essay_text: str, rubric: str):
+def run_ai_grading(essay_text: str, prompt_text: str):
     try:
-        parsed = analyze_essay(essay_text)
+        parsed = analyze_essay(essay_text, prompt_text)
     except Exception as e:
         print("AI GRADING ERROR:", e)
         parsed = fallback_response(str(e))
