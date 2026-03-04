@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import './Login.css';
-import bloodReportImg from './public/blood-report.png';
+import bloodReportImg from '../public/blood-report.png';
 
 interface LoginProps {
   apiUrl: string;
