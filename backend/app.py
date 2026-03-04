@@ -6,7 +6,7 @@ import sqlalchemy
 import pandas as pd
 import uuid
 import json
-from backend.ai_grader import run_ai_grading
+from ai_grader import run_ai_grading
 from flask import send_file
 import io
 
