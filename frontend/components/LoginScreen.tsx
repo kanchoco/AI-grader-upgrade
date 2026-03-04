@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import './Login.css';
-import bloodReportImg from '../public/blood-report.png';
 
 interface LoginProps {
   apiUrl: string;
@@ -59,7 +58,7 @@ const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
         <div className="content-wrapper">
           <h1>AI-Assisted<br />Essay Review</h1>
           <div className="image-box">
-            <img src={bloodReportImg} alt="Icon" className="login-icon-img" />
+            <img src="/blood-report.png" alt="Icon" className="login-icon-img" />
           </div>
         </div>
       </div>
