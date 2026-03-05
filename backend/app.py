@@ -428,7 +428,7 @@ def login():
                 "success": True,
                 "role": "rater",
                 "rater_uid": row["rater_uid"],
-                "rater_name": row["rater_id"]
+                "rater_name": row["rater_name"]
             }
 
         new_uid = conn.execute(
