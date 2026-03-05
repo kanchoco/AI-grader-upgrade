@@ -416,9 +416,9 @@ def login():
     with engine.connect() as conn:
         row = conn.execute(
             sqlalchemy.text("""
-                SELECT rater_uid, rater_id
+                SELECT rater_uid, rater_name
                 FROM raterDB
-                WHERE rater_id = :rid
+                WHERE rater_name = :rid
             """),
             {"rid": rater_id}
         ).mappings().fetchone()
