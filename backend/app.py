@@ -279,7 +279,7 @@ def ai_grade():
 
     student_id = data["student_id"]
     rater_uid = data["rater_uid"]
-    rater_name = data["rater_id"]
+    rater_name = data["rater_name"]
     expert_knw = data["expert_knw_score"]
     expert_crt = data["expert_crt_score"]
 
@@ -378,10 +378,10 @@ def add_final_score():
         conn.execute(
             sqlalchemy.text("""
                 INSERT INTO final_scoreDB
-                (score_uid, student_uid, rater_uid,
+                (score_uid, student_uid, rater_uid, rater_name,
                  knw_score, crt_score)
                 VALUES
-                (:score_uid, :student_uid, :rater_uid,
+                (:score_uid, :student_uid, :rater_uid, :rater_name,
                  :knw_score, :crt_score)
             """),
             data

@@ -216,6 +216,7 @@ const GradingScreen: React.FC<GradingProps> = ({
           student_uid: studentUid,   // DB용
           student_id: studentId,     // 로그/확장용
           rater_uid: raterUid,
+          rater_name: raterId,
           expert_crt_score: Number(expertScore.critical),
           expert_knw_score: Number(expertScore.math),
           expert_rationale: expertRationale,
@@ -255,6 +256,7 @@ const GradingScreen: React.FC<GradingProps> = ({
           score_uid: scoreUid,
           student_uid: studentUid,
           rater_uid: raterUid,
+          rater_name: raterId,
           knw_score: aiResult.scores.scientific,
           crt_score: aiResult.scores.critical,
         }),
