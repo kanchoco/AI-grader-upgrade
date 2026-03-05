@@ -127,7 +127,7 @@ def upload_excel():
             for _, row in df.iterrows():
                 conn.execute(
                     sqlalchemy.text("""
-                        INSERT INTO projectDB
+                        INSERT INTO studentDB
                         (project_id, student_name, student_answer, created_at)
                         VALUES (:pid, :name, :answer, NOW())
                     """),
