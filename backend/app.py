@@ -279,6 +279,7 @@ def ai_grade():
 
     student_id = data["student_id"]
     rater_uid = data["rater_uid"]
+    rater_name = data["rater_id"]
     expert_knw = data["expert_knw_score"]
     expert_crt = data["expert_crt_score"]
 
@@ -320,11 +321,11 @@ def ai_grade():
         conn.execute(
             sqlalchemy.text("""
                 INSERT INTO ai_scoreDB
-                (score_uid, student_uid, rater_uid,
+                (score_uid, student_uid, rater_uid, rater_name,
                  knw_score, crt_score,
                  knw_text, crt_text)
                 VALUES
-                (:uid, :student_uid, :rater_uid,
+                (:uid, :student_uid, :rater_uid, :rater_name,
                  :knw, :crt,
                  :knw_text, :crt_text)
             """),
@@ -343,16 +344,17 @@ def ai_grade():
         conn.execute(
             sqlalchemy.text("""
                 INSERT INTO rater_scoreDB
-                (score_uid, student_uid, rater_uid,
+                (score_uid, student_uid, rater_uid, rater_name,
                  knw_score, crt_score)
                 VALUES
-                (:uid, :student_uid, :rater_uid,
+                (:uid, :student_uid, :rater_uid, :rater_name,
                  :knw, :crt)
             """),
             {
                 "uid": score_uid,
                 "student_uid": student_uid,
                 "rater_uid": rater_uid,
+                "rater_name": rater_name,
                 "knw": expert_knw,
                 "crt": expert_crt,
             }
@@ -426,7 +428,7 @@ def login():
                 "success": True,
                 "role": "rater",
                 "rater_uid": row["rater_uid"],
-                "rater_id": row["rater_id"]
+                "rater_name": row["rater_id"]
             }
 
         new_uid = conn.execute(
@@ -435,7 +437,7 @@ def login():
 
         conn.execute(
             sqlalchemy.text("""
-                INSERT INTO raterDB (rater_uid, rater_id)
+                INSERT INTO raterDB (rater_uid, rater_name)
                 VALUES (:uid, :rid)
             """),
             {"uid": new_uid, "rid": rater_id}
@@ -446,7 +448,7 @@ def login():
             "success": True,
             "role": "rater",
             "rater_uid": new_uid,
-            "rater_id": rater_id
+            "rater_name": rater_id
         }
 
 
