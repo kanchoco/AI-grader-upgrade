@@ -405,7 +405,7 @@ def login():
             "success": True,
             "role": "admin",
             "rater_uid": "admin",
-            "rater_id": "admin"
+            "rater_name": "admin"
         }
 
     # 일반 사용자 비밀번호 검사
@@ -428,7 +428,7 @@ def login():
                 "success": True,
                 "role": "rater",
                 "rater_uid": row["rater_uid"],
-                "rater_name": row["rater_name"]
+                "rater_id": row["rater_name"]
             }
 
         new_uid = conn.execute(
@@ -448,7 +448,7 @@ def login():
             "success": True,
             "role": "rater",
             "rater_uid": new_uid,
-            "rater_name": rater_id
+            "rater_id": rater_id
         }
 
 
