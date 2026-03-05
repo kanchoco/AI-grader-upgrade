@@ -110,8 +110,8 @@ def upload_excel():
             result = conn.execute(
                 sqlalchemy.text("""
                     INSERT INTO projectDB
-                    (project_name, criteria, created_at)
-                    VALUES (:name, :criteria, NOW())
+                    (project_name, criteria, prompt_text, created_at)
+                    VALUES (:name, :criteria, :prompt_text, NOW())
                 """),
                 {
                     "name": project_name,
