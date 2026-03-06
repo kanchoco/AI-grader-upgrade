@@ -13,6 +13,8 @@ function App() {
   const [raterId, setRaterId] = useState("");
   const [raterUid, setRaterUid] = useState("");
   const [role, setRole] = useState<string>(""); 
+  const [projectName, setProjectName] = useState("");
+  const [criteria, setCriteria] = useState<string[]>([]);
 
   // 로딩 상태 추가
   const [isLoading, setIsLoading] = useState(true);
@@ -39,7 +41,9 @@ function App() {
   const handleLoginSuccess = (
     uid: string,
     id: string,
-    userRole?: string
+    userRole?: string,
+    project?: string,
+    projectCriteria?: string[]
   ) => {
     localStorage.setItem("raterUid", uid);
     localStorage.setItem("raterId", id);
@@ -48,7 +52,12 @@ function App() {
       localStorage.setItem("role", userRole);
       setRole(userRole);
     }
-
+    
+    if (project) {
+      localStorage.setItem("projectName", project);
+      setProjectName(project);
+    }
+    setCriteria(projectCriteria ?? []);
     setRaterUid(uid);
     setRaterId(id);
     setIsLoggedIn(true);
@@ -65,6 +74,8 @@ function App() {
     setRaterUid("");
     setRole("");
     setIsLoggedIn(false);
+    setProjectName("");
+    setCriteria([]);
   };
 
   // 로딩 스피너
@@ -108,6 +119,8 @@ function App() {
       apiUrl={API_BASE_URL}
       raterId={raterId}
       raterUid={raterUid}
+      projectName={projectName}
+      criteria={criteria}
       onLogout={handleLogout}  
     />
   );

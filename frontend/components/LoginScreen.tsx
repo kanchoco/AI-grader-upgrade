@@ -3,7 +3,12 @@ import './Login.css';
 
 interface LoginProps {
   apiUrl: string;
-  onLoginSuccess: (raterUid: string, raterId: string, role?: string) => void;
+  onLoginSuccess: (
+    raterUid: string,
+    raterId: string,
+    role?: string,
+    projectName?: string
+  ) => void;
 }
 
 const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
@@ -11,6 +16,7 @@ const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [projectName, setProjectName] = useState('');
 
   // Cloud Run 로그인 API 호출
   const loginAPI = async (id: string, pw: string) => {
@@ -19,7 +25,8 @@ const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         rater_id: id,
-        password: pw
+        password: pw,
+        project_name: projectName
       })
     });
 
@@ -38,7 +45,8 @@ const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
         onLoginSuccess(
           result.rater_uid, 
           result.rater_id,
-          result.role 
+          result.role,
+          projectName
         );
       } else {
         alert(result.message ?? "로그인 실패");
@@ -80,7 +88,17 @@ const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
                 placeholder="Enter your Username"
               />
             </div>
-
+            <div className="input-group">
+              <label htmlFor="project">Project Name</label>
+              <input
+                type="text"
+                id="project"
+                className="input-field"
+                value={projectName}
+                onChange={(e)=>setProjectName(e.target.value)}
+                placeholder="Enter project name"
+              />
+            </div>
             <div className="input-group">
               <label htmlFor="password">Password</label>
               <div className="password-wrapper">

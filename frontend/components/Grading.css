@@ -369,3 +369,9 @@
     .empty-placeholder { display: none; }
     .student-card { height: auto; max-height: 400px; }
 }
+
+.project-name {
+  font-size: 13px;
+  color: #888;
+  margin-top: 2px;
+}

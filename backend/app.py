@@ -230,23 +230,54 @@ def export_db():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
 
+def get_project_id(conn, project_name):
+    row = conn.execute(
+        sqlalchemy.text("""
+            SELECT project_id
+            FROM projectDB
+            WHERE project_name = :name
+        """),
+        {"name": project_name}
+    ).mappings().fetchone()
 
-@app.get("/student/<student_id>")
-def get_student(student_id):
+    if not row:
+        return None
+
+    return row["project_id"]
+
+@app.get("/student/<project_name>/<student_id>")
+def get_student(project_name, student_id):
+
     engine = get_engine()
+
     with engine.connect() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"error": "project not found"}, 404
+
         row = conn.execute(
-            sqlalchemy.text("SELECT * FROM studentDB WHERE student_id = :id"),
-            {"id": student_id}
+            sqlalchemy.text("""
+                SELECT *
+                FROM studentDB
+                WHERE student_id = :id
+                AND project_id = :project_id
+            """),
+            {
+                "id": student_id,
+                "project_id": project_id
+            }
         ).mappings().fetchone()
 
         if not row:
             return {"error": "student not found"}, 404
 
-        return jsonify(dict(row)) 
+        return jsonify(dict(row))
+    
+@app.get("/students/<project_name>/<student_range>")
+def get_students_by_range(project_name, student_range):
 
-@app.get("/students/<student_range>")
-def get_students_by_range(student_range):
     try:
         start_id, end_id = student_range.split("-")
         start_id = int(start_id)
@@ -255,15 +286,27 @@ def get_students_by_range(student_range):
         return {"error": "invalid range format. use start-end"}, 400
 
     engine = get_engine()
+
     with engine.connect() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"error": "project not found"}, 404
+
         rows = conn.execute(
             sqlalchemy.text("""
                 SELECT *
                 FROM studentDB
-                WHERE student_id BETWEEN :start AND :end
+                WHERE project_id = :project_id
+                AND student_id BETWEEN :start AND :end
                 ORDER BY student_id
             """),
-            {"start": start_id, "end": end_id}
+            {
+                "project_id": project_id,
+                "start": start_id,
+                "end": end_id
+            }
         ).mappings().fetchall()
 
         if not rows:
@@ -273,34 +316,50 @@ def get_students_by_range(student_range):
 
 @app.post("/ai_grade")
 def ai_grade():
+
     data = request.get_json(silent=True)
+
     if data is None:
         return {"success": False, "message": "Invalid JSON"}, 400
 
     student_id = data["student_id"]
     rater_uid = data["rater_uid"]
     rater_name = data["rater_name"]
-    expert_knw = data["expert_knw_score"]
-    expert_crt = data["expert_crt_score"]
+    project_name = data["project_name"]
+
+    criteria_data = data["criteria"]   # [{name:"logic", expert_score:7}...]
 
     engine = get_engine()
 
     with engine.connect() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"success": False, "message": "project not found"}, 404
+
+
         student = conn.execute(
             sqlalchemy.text("""
-                SELECT student_uid, student_answer, project_id
+                SELECT student_uid, student_answer
                 FROM studentDB
                 WHERE student_id = :id
+                AND project_id = :pid
             """),
-            {"id": student_id}
+            {
+                "id": student_id,
+                "pid": project_id
+            }
         ).mappings().fetchone()
+
 
         if not student:
             return {"success": False, "message": "student not found"}, 404
 
+
         student_uid = student["student_uid"]
         essay = student["student_answer"]
-        project_id = student["project_id"]
+
 
         project = conn.execute(
             sqlalchemy.text("""
@@ -313,54 +372,80 @@ def ai_grade():
 
         prompt_text = project["prompt_text"] if project else ""
 
-        # AI 채점
+
+        # AI 채점 실행
         ai_result = run_ai_grading(essay, prompt_text)
+
         score_uid = str(uuid.uuid4())
 
-        # AI 점수 저장
-        conn.execute(
-            sqlalchemy.text("""
-                INSERT INTO ai_scoreDB
-                (score_uid, student_uid, rater_uid, rater_name,
-                 knw_score, crt_score,
-                 knw_text, crt_text)
-                VALUES
-                (:uid, :student_uid, :rater_uid, :rater_name,
-                 :knw, :crt,
-                 :knw_text, :crt_text)
-            """),
-            {
-                "uid": score_uid,
-                "student_uid": student_uid,
-                "rater_uid": rater_uid,
-                "knw": ai_result["scores"]["scientific"],
-                "crt": ai_result["scores"]["critical"],
-                "knw_text": "\n".join(ai_result["rationales"]["scientific"]),
-                "crt_text": "\n".join(ai_result["rationales"]["critical"]),
-            }
-        )
 
-        # 전문가 점수 저장
+        # -------------------------
+        # human score JSON 생성
+        # -------------------------
+
+        human_scores = {}
+
+        for c in criteria_data:
+            human_scores[c["name"]] = c["expert_score"]
+
+
+        # -------------------------
+        # AI score JSON
+        # -------------------------
+
+        ai_scores = ai_result["scores"]
+
+
+        # -------------------------
+        # human score 저장
+        # -------------------------
+
         conn.execute(
             sqlalchemy.text("""
-                INSERT INTO rater_scoreDB
-                (score_uid, student_uid, rater_uid, rater_name,
-                 knw_score, crt_score)
+                INSERT INTO scoreDB
+                (score_id, student_id, rater_uid, rater_name,
+                 stage, scores, project_id, created_at)
                 VALUES
-                (:uid, :student_uid, :rater_uid, :rater_name,
-                 :knw, :crt)
+                (:score_id, :student_id, :rater_uid, :rater_name,
+                 'human', :scores, :project_id, NOW())
             """),
             {
-                "uid": score_uid,
-                "student_uid": student_uid,
+                "score_id": score_uid,
+                "student_id": student_id,
                 "rater_uid": rater_uid,
                 "rater_name": rater_name,
-                "knw": expert_knw,
-                "crt": expert_crt,
+                "scores": json.dumps(human_scores, ensure_ascii=False),
+                "project_id": project_id
             }
         )
 
+
+        # -------------------------
+        # AI score 저장
+        # -------------------------
+
+        conn.execute(
+            sqlalchemy.text("""
+                INSERT INTO scoreDB
+                (score_id, student_id, rater_uid, rater_name,
+                 stage, scores, project_id, created_at)
+                VALUES
+                (:score_id, :student_id, :rater_uid, :rater_name,
+                 'ai', :scores, :project_id, NOW())
+            """),
+            {
+                "score_id": score_uid,
+                "student_id": student_id,
+                "rater_uid": rater_uid,
+                "rater_name": rater_name,
+                "scores": json.dumps(ai_scores, ensure_ascii=False),
+                "project_id": project_id
+            }
+        )
+
+
         conn.commit()
+
 
     return {
         "success": True,
@@ -371,21 +456,44 @@ def ai_grade():
 
 @app.post("/add_final_score")
 def add_final_score():
+
     data = request.json
+
+    score_uid = data["score_uid"]
+    student_id = data["student_id"]
+    rater_uid = data["rater_uid"]
+    rater_name = data["rater_name"]
+    project_name = data["project_name"]
+    scores = data["scores"]   # {logic:7, creativity:8}
+
     engine = get_engine()
 
     with engine.connect() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"status": "error", "message": "project not found"}, 404
+
         conn.execute(
             sqlalchemy.text("""
-                INSERT INTO final_scoreDB
-                (score_uid, student_uid, rater_uid, rater_name,
-                 knw_score, crt_score)
+                INSERT INTO scoreDB
+                (score_id, student_id, rater_uid, rater_name,
+                 stage, scores, project_id, created_at)
                 VALUES
-                (:score_uid, :student_uid, :rater_uid, :rater_name,
-                 :knw_score, :crt_score)
+                (:score_id, :student_id, :rater_uid, :rater_name,
+                 'final', :scores, :project_id, NOW())
             """),
-            data
+            {
+                "score_id": score_uid,
+                "student_id": student_id,
+                "rater_uid": rater_uid,
+                "rater_name": rater_name,
+                "scores": json.dumps(scores, ensure_ascii=False),
+                "project_id": project_id
+            }
         )
+
         conn.commit()
 
     return {"status": "ok"}
