@@ -276,7 +276,7 @@ const GradingScreen: React.FC<GradingProps> = ({
           rater_name: raterId,
           criteria: criteria.map((c) => ({
             name: c,
-            ai_score: aiResult.scores[c]
+            ai_score: aiResult?.scores?.[c]
           }))
         }),
       });
@@ -538,7 +538,7 @@ const GradingScreen: React.FC<GradingProps> = ({
                               <ul className="feedback-list">
 
                                 {(aiResult?.rationales?.[criterion] ?? []).length > 0
-                                  ? aiResult.rationales[criterion].map((r, i) => (
+                                  ? (aiResult?.rationales?.[criterion] ?? []).map((r, i) => (
                                       <li key={i}>{r}</li>
                                     ))
                                   : <li>근거 없음</li>
