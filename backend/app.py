@@ -254,9 +254,6 @@ def get_student(project_name, student_id):
 
         project_id = get_project_id(conn, project_name)
 
-        if not project_id:
-            return {"error": "project not found"}, 404
-
         row = conn.execute(
             sqlalchemy.text("""
                 SELECT *
@@ -503,6 +500,7 @@ def login():
     data = request.json
     rater_id = data.get("rater_id")
     password = data.get("password")
+    project_name = data.get("project_name")
 
     COMMON_PASSWORD = os.environ.get("COMMON_PASSWORD", "000000")
     ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "1111")
@@ -522,6 +520,14 @@ def login():
 
     engine = get_engine()
     with engine.connect() as conn:
+
+        # 일반 사용자만 project 검사
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"success": False, "message": "project not found"}
+
+
         row = conn.execute(
             sqlalchemy.text("""
                 SELECT rater_uid, rater_name
@@ -556,7 +562,8 @@ def login():
             "success": True,
             "role": "rater",
             "rater_uid": new_uid,
-            "rater_id": rater_id
+            "rater_id": rater_id,
+            "project_id": project_id
         }
 
 
