@@ -258,7 +258,7 @@ def get_student(project_name, student_id):
             sqlalchemy.text("""
                 SELECT *
                 FROM studentDB
-                WHERE student_id = :id
+                WHERE student_name = :id
                 AND project_id = :project_id
             """),
             {
@@ -288,15 +288,12 @@ def get_students_by_range(project_name, student_range):
 
         project_id = get_project_id(conn, project_name)
 
-        if not project_id:
-            return {"error": "project not found"}, 404
-
         rows = conn.execute(
             sqlalchemy.text("""
                 SELECT *
                 FROM studentDB
                 WHERE project_id = :project_id
-                AND student_id BETWEEN :start AND :end
+                AND student_name BETWEEN :start AND :end
                 ORDER BY student_id
             """),
             {
