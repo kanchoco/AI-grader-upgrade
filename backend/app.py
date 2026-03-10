@@ -534,12 +534,26 @@ def login():
             {"rid": rater_id}
         ).mappings().fetchone()
 
+        # project criteria 가져오기
+        project_row = conn.execute(
+            sqlalchemy.text("""
+                SELECT criteria
+                FROM projectDB
+                WHERE project_id = :pid
+            """),
+            {"pid": project_id}
+        ).mappings().fetchone()
+
+        criteria = project_row["criteria"] if project_row else None
+
         if row is not None:
             return {
                 "success": True,
                 "role": "rater",
                 "rater_uid": row["rater_uid"],
-                "rater_id": row["rater_name"]
+                "rater_id": row["rater_name"],
+                "project_id": project_id,
+                "criteria": criteria
             }
 
         new_uid = conn.execute(
@@ -560,7 +574,8 @@ def login():
             "role": "rater",
             "rater_uid": new_uid,
             "rater_id": rater_id,
-            "project_id": project_id
+            "project_id": project_id,
+            "criteria": criteria
         }
 
 
