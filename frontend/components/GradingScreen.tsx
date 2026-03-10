@@ -13,7 +13,6 @@ const normalize = (text: string) => text.replace(/[\s,.?!]+/g, '').trim();
 
 // 색상 팔레트 (항목이 늘어날 경우 순환해서 적용됨)
 const HIGHLIGHT_COLORS = ['#B4C6E7', '#FFE699', '#D5E8D4', '#F8CECC']; // 파랑, 노랑, 초록, 분홍
-const LABEL_CLASSES = ['label-blue', 'label-yellow', 'label-green', 'label-pink']; // css에 클래스 추가 필요 시 사용 예정 (현재 blue, yellow 활용)
 
 // ----------------------------------------------------------------------
 // [2] 동적 답안 하이라이터 컴포넌트
@@ -67,7 +66,6 @@ const GradingRow: React.FC<GradingRowProps> = ({
   student, apiUrl, raterUid, raterId, projectName, criteria, isLast 
 }) => {
   const [expertScores, setExpertScores] = useState<{ [key: string]: string }>({});
-  const [expertRationale, setExpertRationale] = useState('');
   
   type AIResult = {
     scores: Record<string, number>;
@@ -122,8 +120,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
           criteria: criteria.map((c) => ({
             name: c,
             expert_score: Number(expertScores[c])
-          })),
-          expert_rationale: expertRationale
+          }))
         }),
       });
 
