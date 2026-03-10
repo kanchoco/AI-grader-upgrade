@@ -7,7 +7,8 @@ interface LoginProps {
     raterUid: string,
     raterId: string,
     role?: string,
-    projectName?: string
+    projectName?: string,
+    criteria?: string[]
   ) => void;
 }
 
@@ -46,7 +47,8 @@ const LoginScreen: React.FC<LoginProps> = ({ apiUrl, onLoginSuccess }) => {
           result.rater_uid, 
           result.rater_id,
           result.role,
-          projectName
+          projectName,
+          result.criteria
         );
       } else {
         alert(result.message ?? "로그인 실패");

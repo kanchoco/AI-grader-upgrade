@@ -245,6 +245,8 @@
 }
 .label-blue { background-color: #B4C6E7; }
 .label-yellow { background-color: #FFE699; }
+.label-green { background-color: #D5E8D4; }
+.label-pink { background-color: #F8CECC; }
 
 /* 인풋창 스타일 */
 .score-input, .score-display {
