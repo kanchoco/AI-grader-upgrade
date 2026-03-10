@@ -24,12 +24,24 @@ function App() {
     const savedUid = localStorage.getItem("raterUid");
     const savedId = localStorage.getItem("raterId");
     const savedRole = localStorage.getItem("role");
+    const savedProjectName = localStorage.getItem("projectName");
+    const savedCriteria = localStorage.getItem("criteria");
 
     if (savedUid && savedId) {
       // 저장된 정보가 있으면 바로 로그인 처리
       setRaterUid(savedUid);
       setRaterId(savedId);
       setRole(savedRole ?? "");
+      setProjectName(savedProjectName ?? "");
+
+      if (savedCriteria) {
+        try {
+          setCriteria(JSON.parse(savedCriteria));
+        } catch (e) {
+          console.error("Failed to parse criteria from localStorage");
+          setCriteria([]);
+        }
+      }
       setIsLoggedIn(true);
     }
     
@@ -57,6 +69,13 @@ function App() {
       localStorage.setItem("projectName", project);
       setProjectName(project);
     }
+    if (projectCriteria) {
+      localStorage.setItem("criteria", JSON.stringify(projectCriteria));
+      setCriteria(projectCriteria);
+    } else {
+      setCriteria([]);
+    }
+
     setCriteria(projectCriteria ?? []);
     setRaterUid(uid);
     setRaterId(id);
@@ -68,6 +87,8 @@ function App() {
     localStorage.removeItem("raterUid");
     localStorage.removeItem("raterId");
     localStorage.removeItem("role");
+    localStorage.removeItem("projectName");
+    localStorage.removeItem("criteria");
 
     // 상태 초기화
     setRaterId("");

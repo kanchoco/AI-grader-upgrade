@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './Grading.css';
 
 // ----------------------------------------------------------------------
@@ -11,9 +11,9 @@ const createFlexiblePattern = (text: string) => {
 
 const normalize = (text: string) => text.replace(/[\s,.?!]+/g, '').trim();
 
-// 동적 색상 팔레트 (항목이 늘어날 경우 순환해서 적용됨)
+// 색상 팔레트 (항목이 늘어날 경우 순환해서 적용됨)
 const HIGHLIGHT_COLORS = ['#B4C6E7', '#FFE699', '#D5E8D4', '#F8CECC']; // 파랑, 노랑, 초록, 분홍
-const LABEL_CLASSES = ['label-blue', 'label-yellow', 'label-green', 'label-pink']; // css에 클래스 추가 필요 시 사용 (현재 blue, yellow 활용)
+const LABEL_CLASSES = ['label-blue', 'label-yellow', 'label-green', 'label-pink']; // css에 클래스 추가 필요 시 사용 예정 (현재 blue, yellow 활용)
 
 // ----------------------------------------------------------------------
 // [2] 동적 답안 하이라이터 컴포넌트
@@ -84,7 +84,10 @@ const GradingRow: React.FC<GradingRowProps> = ({
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [aiError, setAiError] = useState(false);
 
-  const CARD_HEIGHT = '580px';
+  //항목 개수에 비례하는 동적 높이 계산 
+  // 기본 버튼/여백 높이(150) + (항목 개수 * 항목당 높이 75)
+  const calculatedHeight = Math.max(280, 150 + (criteria.length * 75));
+  const CARD_HEIGHT = `${calculatedHeight}px`;
 
   // AI 채점 실행
   const handleAiGrade = async () => {
@@ -160,7 +163,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
           rater_uid: raterUid,
           rater_name: raterId,
           project_name: projectName,
-          scores: aiResult.scores // 백엔드 로직에 맞춤
+          scores: aiResult.scores
         }),
       });
 
@@ -197,7 +200,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
     <div className="grading-row fade-in" style={{ 
       paddingTop: '10px',
       marginBottom: isLast ? '0px' : '60px', 
-      borderBottom: isLast ? 'none' : '2px dashed #ccc', 
+      borderBottom: isLast ? 'none' : '1px solid #ccc', 
       paddingBottom: isLast ? '20px' : '40px' 
     }}>
       <div className="row-header desktop-only">
@@ -206,28 +209,34 @@ const GradingRow: React.FC<GradingRowProps> = ({
           <div className="header-placeholder">{isAiPanelOpen && <h2>AI 채점</h2>}</div>
       </div>
 
-      <div className="row-body" style={{ alignItems: 'start' }}>
+      <div className="row-body" style={{ alignItems: 'flex-start' }}>
           
-          {/* [1] 학생 답안 */}
-          <div className="column student-column">
+          {/* 학생 답안 */}
+          <div className="column student-column" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 className="mobile-title">Student #{student.student_id} 답안</h3>
+              {/* 동적으로 계산된 높이 적용 */}
               <div className="student-card custom-scroll" style={{ height: CARD_HEIGHT, overflowY: 'auto' }}>
                   <p className="answer-text">
-                      <AnswerHighlighter text={student.student_answer} highlights={allHighlights} />
+                          <AnswerHighlighter text={student.student_answer} highlights={allHighlights} />
                   </p>
               </div>
           </div>
 
-          {/* [2] 전문가 채점 (동적 생성) */}
-          <div className="column expert-column">
+          {/* 전문가 채점 */}
+          <div className="column expert-column" style={{ display: 'flex', flexDirection: 'column' }}>
               <h3 className="mobile-title">전문가 채점</h3>
+              {/* 동적으로 계산된 높이 적용 */}
               <div className="grading-form-container" style={{ height: CARD_HEIGHT, display: 'flex', flexDirection: 'column' }}>
                   <div style={{ flex: '0 0 auto' }}> 
+                    {criteria.length === 0 && <div style={{color: 'red', marginBottom: '10px'}}>새 프로젝트를 업로드해야 항목이 표시됩니다.</div>}
+                    
                     {(criteria || []).map((criterion, idx) => {
-                      const colorClass = idx === 0 ? 'label-blue' : idx === 1 ? 'label-yellow' : LABEL_CLASSES[idx % LABEL_CLASSES.length];
+                      const bgColor = HIGHLIGHT_COLORS[idx % HIGHLIGHT_COLORS.length];
                       return (
                         <div key={criterion} className="score-row">
-                            <span className={`score-label ${colorClass}`}>{criterion}</span>
+                            <span className="score-label" style={{ backgroundColor: bgColor }}>
+                                {criterion}
+                            </span>
                             <input 
                                 type="number" 
                                 className="score-input"
@@ -246,17 +255,8 @@ const GradingRow: React.FC<GradingRowProps> = ({
                     })}
                   </div>
 
-                  <textarea 
-                      className="reason-box custom-scroll"
-                      placeholder="채점 근거(선택):"
-                      value={expertRationale}
-                      onChange={(e) => setExpertRationale(e.target.value)}
-                      disabled={isScoreLocked || isConfirmed}
-                      style={{ flex: 1, minHeight: '100px', margin: '10px 0' }}
-                  />
-
-                  <div className="button-stack" style={{ flex: '0 0 auto' }}>
-                      <button 
+                  <div className="button-stack" style={{ flex: '0 0 auto', marginTop: '10px' }}>
+                      <button
                           className="btn-ai-check" 
                           onClick={handleAiGrade}
                           disabled={isLoading || isConfirmed}
@@ -300,10 +300,12 @@ const GradingRow: React.FC<GradingRowProps> = ({
                           {/* 점수 영역 */}
                           <div style={{ flex: '0 0 auto', paddingBottom: '10px', borderBottom: '1px solid #eee' }}>
                             {(criteria || []).map((criterion, idx) => {
-                               const colorClass = idx === 0 ? 'label-blue' : idx === 1 ? 'label-yellow' : LABEL_CLASSES[idx % LABEL_CLASSES.length];
+                               const bgColor = HIGHLIGHT_COLORS[idx % HIGHLIGHT_COLORS.length];
                                return (
                                   <div key={criterion} className="score-row">
-                                      <span className={`score-label ${colorClass}`}>{criterion}</span>
+                                      <span className="score-label" style={{ backgroundColor: bgColor }}>
+                                          {criterion}
+                                      </span>
                                       <div className="score-display">{aiResult?.scores?.[criterion] ?? '-'}</div>
                                   </div>
                                );
@@ -348,7 +350,7 @@ interface GradingProps {
   raterId: string;
   raterUid: string;
   projectName: string;
-  criteria: string[];
+  criteria: any;
   onLogout: () => void;
 }
 
@@ -358,6 +360,22 @@ const GradingScreen: React.FC<GradingProps> = ({
   const [searchText, setSearchText] = useState('');
   const [studentList, setStudentList] = useState<any[]>([]);
   const [isGradingStarted, setIsGradingStarted] = useState(false);
+
+  const safeCriteria = useMemo(() => {
+    let parsed: string[] = [];
+    try {
+      if (Array.isArray(criteria)) {
+        parsed = criteria;
+      } else if (typeof criteria === 'string') {
+        const temp = JSON.parse(criteria);
+        // 이중으로 문자열화 되어있을 경우를 대비
+        parsed = typeof temp === 'string' ? JSON.parse(temp) : temp;
+      }
+    } catch (e) {
+      console.error("Criteria parsing error", e);
+    }
+    return Array.isArray(parsed) ? parsed : [];
+  }, [criteria]);
 
   const handleSearch = async () => {
     const input = searchText.trim();
@@ -426,13 +444,13 @@ const GradingScreen: React.FC<GradingProps> = ({
           <div className="grading-list">
              {studentList.map((student, index) => (
                <GradingRow 
-                  key={student.student_uid} 
+                  key={student.student_id} 
                   student={student}
                   apiUrl={apiUrl}
                   raterUid={raterUid}
                   raterId={raterId}
                   projectName={projectName}
-                  criteria={criteria}
+                  criteria={safeCriteria}
                   isLast={index === studentList.length - 1}
                />
              ))}
