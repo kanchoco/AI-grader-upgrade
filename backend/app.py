@@ -308,7 +308,7 @@ def get_students_by_range(project_name, student_range):
 
         return [dict(row) for row in rows]
 
-@app.post("/ai_grade")
+@app.route("/ai_grade", methods=["POST"])
 def ai_grade():
 
     data = request.get_json(silent=True)
