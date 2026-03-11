@@ -201,7 +201,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
       paddingBottom: isLast ? '20px' : '40px' 
     }}>
       <div className="row-header desktop-only">
-          <h2>Student #{student.student_id} 답안</h2>
+          <h2>Student #{student.student_name} 답안</h2>
           <h2>전문가 채점</h2>
           <div className="header-placeholder">{isAiPanelOpen && <h2>AI 채점</h2>}</div>
       </div>

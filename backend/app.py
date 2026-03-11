@@ -335,9 +335,9 @@ def ai_grade():
 
         student = conn.execute(
             sqlalchemy.text("""
-                SELECT student_uid, student_answer
+                SELECT student_id, student_answer
                 FROM studentDB
-                WHERE student_id = :id
+                WHERE student_name = :id
                 AND project_id = :pid
             """),
             {
