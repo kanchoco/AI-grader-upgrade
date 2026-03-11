@@ -308,7 +308,7 @@ def get_students_by_range(project_name, student_range):
 
         return [dict(row) for row in rows]
 
-@app.route("/ai_grade", methods=["POST"])
+@app.post("/ai_grade")
 def ai_grade():
 
     data = request.get_json(silent=True)
@@ -586,7 +586,14 @@ def serve_index():
 
 @app.route("/<path:path>")
 def serve_react(path):
+
+    # API 경로는 React로 보내지 않음
+    if path.startswith("api") or path.startswith("ai_grade") or path.startswith("student"):
+        return {"error": "API route not found"}, 404
+
     file_path = os.path.join(FRONTEND_BUILD_PATH, path)
+
     if os.path.exists(file_path):
         return send_from_directory(FRONTEND_BUILD_PATH, path)
+
     return send_from_directory(FRONTEND_BUILD_PATH, "index.html")
