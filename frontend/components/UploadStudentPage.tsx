@@ -19,6 +19,12 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
   const [criteriaList, setCriteriaList] = useState<string[]>([""]);
   const [rubric, setRubric] = useState("");
 
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [deleteProjectInput, setDeleteProjectInput] = useState("");
+
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportProjectInput, setExportProjectInput] = useState("");
+
   const handleAddCriteriaField = () => {
     setCriteriaList([...criteriaList, ""]);
   };
@@ -146,44 +152,53 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     }
   };
 
-  const handleCreateNewDB = async () => {
-    if (!projectName.trim()) {
-      setMessage("프로젝트명을 입력해주세요.");
+  const handleDeleteProject = async () => {
+
+    if (!deleteProjectInput.trim()) {
+      setMessage("삭제할 프로젝트 이름을 입력하세요.");
       return;
     }
 
-    if (!window.confirm("해당 프로젝트의 DB를 초기화하시겠습니까?")) {
+    if (deleteProjectInput !== projectName) {
+      setMessage("프로젝트 이름이 일치하지 않습니다.");
       return;
     }
 
     try {
-      const res = await fetch(`${apiUrl}/admin/reset_db`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectName }),
+      const res = await fetch(`${apiUrl}/delete_project/${deleteProjectInput}`, {
+        method: "DELETE"
       });
 
       const data = await res.json();
 
-      if (data.status === "success") {
-        setMessage("DB가 새로 생성되었습니다.");
+      if (data.success) {
+        setMessage("프로젝트 데이터가 삭제되었습니다.");
+        setDeleteModalOpen(false);
+        setDeleteProjectInput("");
       } else {
-        setMessage("DB 생성 실패: " + data.message);
+        setMessage(data.message || "삭제 실패");
       }
+
     } catch {
-      setMessage("DB 생성 중 오류 발생");
+      setMessage("삭제 중 서버 오류 발생");
     }
   };
 
-  const handleExportDB = async () => {
-    if (!projectName.trim()) {
-      setMessage("프로젝트명을 입력해주세요.");
+  const handleExportProject = async () => {
+
+    if (!exportProjectInput.trim()) {
+      setMessage("내보낼 프로젝트 이름을 입력하세요.");
+      return;
+    }
+
+    if (exportProjectInput.trim() !== projectName.trim()) {
+      setMessage("프로젝트 이름이 일치하지 않습니다.");
       return;
     }
 
     try {
       const res = await fetch(
-        `${apiUrl}/export_db?projectName=${projectName}`
+        `${apiUrl}/export_db?projectName=${exportProjectInput}`
       );
 
       if (!res.ok) {
@@ -196,183 +211,286 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${projectName}_grading_results.xlsx`;
+      a.download = `${exportProjectInput}_grading_results.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
+
+      setExportModalOpen(false);
+      setExportProjectInput("");
+
     } catch {
       setMessage("엑셀 다운로드 중 오류 발생");
     }
   };
 
   return (
-    <div className="grading-container">
+    <>
+      <div className="grading-container">
 
-      <header className="top-header">
-        <div className="logo">AI Essay Grader</div>
-        <div className="rater-info">
-          <p className="rater-name">{raterId}님 환영합니다</p>
-          <button className="logout-btn" onClick={onLogout}>
-            Logout
-          </button>
-        </div>
-      </header>
+        <header className="top-header">
+          <div className="logo">AI Essay Grader</div>
+          <div className="rater-info">
+            <p className="rater-name">{raterId}님 환영합니다</p>
+            <button className="logout-btn" onClick={onLogout}>
+              Logout
+            </button>
+          </div>
+        </header>
 
-      <main className="main-content">
-        <div style={{ maxWidth: "900px", margin: "60px auto" }}>
+        <main className="main-content">
+          <div style={{ maxWidth: "900px", margin: "60px auto" }}>
 
-          <div className="card">
-            <h2>학생 데이터 업로드</h2>
+            {/* 학생 데이터 업로드 */}
+            <div className="card">
+              <h2>학생 데이터 업로드</h2>
 
-            <input
-              className="input-field"
-              placeholder="프로젝트명 입력 (예: 2025_midterm)"
-              value={projectName}
-              onChange={(e) => setProjectName(e.target.value)}
-            />
+              <input
+                className="input-field"
+                placeholder="프로젝트명 입력 (예: 2025_midterm)"
+                value={projectName}
+                onChange={(e) => setProjectName(e.target.value)}
+              />
 
-            <input
-              className="input-field"
-              placeholder="학생 이름 열 텍스트 (예: 이름)"
-              value={nameColumn}
-              onChange={(e) => setNameColumn(e.target.value)}
-            />
+              <input
+                className="input-field"
+                placeholder="학생 이름 열 텍스트 (예: 이름)"
+                value={nameColumn}
+                onChange={(e) => setNameColumn(e.target.value)}
+              />
 
-            <input
-              className="input-field"
-              placeholder="학생 답변 열 텍스트 (예: 답변)"
-              value={answerColumn}
-              onChange={(e) => setAnswerColumn(e.target.value)}
-            />
+              <input
+                className="input-field"
+                placeholder="학생 답변 열 텍스트 (예: 답변)"
+                value={answerColumn}
+                onChange={(e) => setAnswerColumn(e.target.value)}
+              />
 
-            <div style={{ marginTop: "20px" }}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "10px"
-                }}
-              >
-                <h3 style={{ margin: 0 }}>판단 항목 설정</h3>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleAddCriteriaField}
-                >
-                  + 항목 추가
-                </button>
-              </div>
-
-              {criteriaList.map((c, index) => (
+              <div style={{ marginTop: "20px" }}>
                 <div
-                  key={index}
                   style={{
                     display: "flex",
-                    gap: "10px",
+                    justifyContent: "space-between",
                     alignItems: "center",
                     marginBottom: "10px"
                   }}
                 >
-                  <input
-                    className="input-field"
-                    style={{ flex: 1 }}
-                    placeholder="예시: 수과학적 지식"
-                    value={c}
-                    onChange={(e) =>
-                      handleCriteriaChange(index, e.target.value)
-                    }
-                  />
-
+                  <h3 style={{ margin: 0 }}>판단 항목 설정</h3>
                   <button
                     type="button"
-                    className="btn btn-danger"
-                    onClick={() => handleRemoveCriteria(index)}
-                    disabled={criteriaList.length === 1}
+                    className="btn btn-primary"
+                    onClick={handleAddCriteriaField}
                   >
-                    ✕
+                    + 항목 추가
                   </button>
                 </div>
-              ))}
-            </div>
-            <div style={{ marginTop: "20px" }}>
-              <h3>예시 채점 기준안</h3>
 
-              <div
-                style={{
-                  background: "#f5f5f5",
-                  padding: "15px",
-                  borderRadius: "8px",
-                  whiteSpace: "pre-line",
-                  fontSize: "14px"
-                }}
+                {criteriaList.map((c, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      display: "flex",
+                      gap: "10px",
+                      alignItems: "center",
+                      marginBottom: "10px"
+                    }}
+                  >
+                    <input
+                      className="input-field"
+                      style={{ flex: 1 }}
+                      placeholder="예시: 수과학적 지식"
+                      value={c}
+                      onChange={(e) =>
+                        handleCriteriaChange(index, e.target.value)
+                      }
+                    />
+
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={() => handleRemoveCriteria(index)}
+                      disabled={criteriaList.length === 1}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ marginTop: "20px" }}>
+                <h3>예시 채점 기준안</h3>
+
+                <div
+                  style={{
+                    background: "#f5f5f5",
+                    padding: "15px",
+                    borderRadius: "8px",
+                    whiteSpace: "pre-line",
+                    fontSize: "14px"
+                  }}
+                >
+                  {exampleRubric}
+                </div>
+              </div>
+
+              <div style={{ marginTop: "20px" }}>
+                <h3>채점 기준안 입력</h3>
+
+                <textarea
+                  className="input-field"
+                  style={{
+                    width: "100%",
+                    minHeight: "150px",
+                    resize: "vertical"
+                  }}
+                  placeholder="채점 기준안을 입력하세요"
+                  value={rubric}
+                  onChange={(e) => setRubric(e.target.value)}
+                />
+              </div>
+
+              <input
+                type="file"
+                accept=".xlsx,.xls"
+                onChange={handleFileSelect}
+                style={{ marginTop: "20px" }}
+              />
+
+              <button
+                className="btn btn-primary"
+                onClick={handleUpload}
+                disabled={uploading}
+                style={{ marginTop: "15px" }}
               >
-                {exampleRubric}
+                {uploading ? "업로드 중..." : "엑셀 업로드"}
+              </button>
+
+              {message && (
+                <p style={{ marginTop: "15px" }}>{message}</p>
+              )}
+            </div>
+
+            {/* 관리자 DB 관리 */}
+            <div className="card">
+              <h3>관리자 DB 관리</h3>
+
+              <div className="button-group">
+                <button
+                  className="btn btn-danger"
+                  onClick={() =>   {
+                    if (!projectName.trim()) {
+                      setMessage("프로젝트명을 먼저 입력하세요.");
+                      return;
+                    }
+                    setDeleteModalOpen(true)}}
+                >
+                  프로젝트 데이터 지우기
+                </button>
+
+                <button
+                  className="btn btn-success"
+                  onClick={() => {
+                    if (!projectName.trim()) {
+                      setMessage("프로젝트명을 먼저 입력하세요.");
+                      return;
+                    }
+                    setExportModalOpen(true)}}
+                >
+                  DB 데이터 내보내기 (Excel)
+                </button>
               </div>
             </div>
-            <div style={{ marginTop: "20px" }}>
-              <h3>채점 기준안 입력</h3>
 
-              <textarea
-                className="input-field"
-                style={{
-                  width: "100%",
-                  minHeight: "150px",
-                  resize: "vertical"
-                }}
-                placeholder="채점 기준안을 입력하세요"
-                value={rubric}
-                onChange={(e) => setRubric(e.target.value)}
-              />
-            </div>
+          </div>
+        </main>
+
+      </div>
+
+      {/* 삭제 modal */}
+      {deleteModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+
+            <h3>프로젝트 삭제</h3>
+
+            <p>
+              삭제하려면 아래에 <b>{projectName}</b> 을(를) 정확히 입력하세요
+            </p>
+
             <input
-              type="file"
-              accept=".xlsx,.xls"
-              onChange={handleFileSelect}
-              style={{ marginTop: "20px" }}
+              className="input-field"
+              value={deleteProjectInput}
+              onChange={(e) => setDeleteProjectInput(e.target.value)}
+              placeholder={`프로젝트 이름: ${projectName}`}
             />
 
-            <button
-              className="btn btn-primary"
-              onClick={handleUpload}
-              disabled={uploading}
-              style={{ marginTop: "15px" }}
-            >
-              {uploading ? "업로드 중..." : "엑셀 업로드"}
-            </button>
+            <div className="modal-buttons">
 
-            {message && (
-              <p style={{ marginTop: "15px" }}>{message}</p>
-            )}
-          </div>
-
-          <div className="card">
-            <h3>관리자 DB 관리</h3>
-
-            <div className="button-group">
               <button
                 className="btn btn-danger"
-                onClick={handleCreateNewDB}
+                onClick={handleDeleteProject}
+                disabled={deleteProjectInput.trim() !== projectName.trim()}
               >
-                DB 새로 만들기
+                삭제
               </button>
+
+              <button
+                className="btn"
+                onClick={() => setDeleteModalOpen(false);
+                setDeleteProjectInput("");
+                }
+              >
+                취소
+              </button>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* export modal */}
+      {exportModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+
+            <h3>데이터 내보내기</h3>
+
+            <p>
+              내보내려면 아래에 <b>{projectName}</b> 을(를) 정확히 입력하세요
+            </p>
+
+            <input
+              className="input-field"
+              value={exportProjectInput}
+              onChange={(e) => setExportProjectInput(e.target.value)}
+              placeholder={`프로젝트 이름: ${projectName}`}
+            />
+
+            <div className="modal-buttons">
 
               <button
                 className="btn btn-success"
-                onClick={handleExportDB}
+                onClick={handleExportProject}
+                disabled={exportProjectInput.trim() !== projectName.trim()}
               >
-                DB 데이터 내보내기 (Excel)
+                내보내기
               </button>
+
+              <button
+                className="btn"
+                onClick={() => setExportModalOpen(false);
+                setExportProjectInput("");
+                }
+              >
+                취소
+              </button>
+
             </div>
+
           </div>
-
         </div>
-      </main>
-
-    </div>  
-
+      )}
+    </>
   );
-
 };
-
-export default UploadStudentPage;

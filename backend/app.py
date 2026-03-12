@@ -150,85 +150,51 @@ def upload_excel():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
     
-@app.get("/export_db")
-def export_db():
-    project_name = request.args.get("projectName")
+@app.get("/export_project_excel/<project_name>")
+def export_project_excel(project_name):
 
-    if not project_name:
-        return {"status": "error", "message": "projectName 누락"}, 400
+    engine = get_engine()
 
-    try:
-        engine = get_engine()
+    with engine.connect() as conn:
 
-        with engine.connect() as conn:
+        project_id = get_project_id(conn, project_name)
 
-            # ---- project_id 조회 ----
-            project = conn.execute(
-                sqlalchemy.text("""
-                    SELECT project_id
-                    FROM projectDB
-                    WHERE project_name = :name
-                """),
-                {"name": project_name}
-            ).mappings().fetchone()
+        if not project_id:
+            return {"success": False, "message": "project not found"}, 404
 
-            if not project:
-                return {"status": "error", "message": "프로젝트 없음"}, 404
+        rows = conn.execute(
+            sqlalchemy.text("""
+                SELECT
+                    student_id,
+                    rater_name,
+                    stage,
+                    scores,
+                    created_at
+                FROM scoreDB
+                WHERE project_id = :pid
+                ORDER BY student_id
+            """),
+            {"pid": project_id}
+        ).mappings().all()
 
-            project_id = project["project_id"]
+    if not rows:
+        return {"success": False, "message": "no data"}
 
-            # ---- 학생 + 점수 JOIN ----
-            rows = conn.execute(
-                sqlalchemy.text("""
-                    SELECT 
-                        s.student_id,
-                        s.student_name,
-                        s.student_answer,
+    df = pd.DataFrame(rows)
 
-                        MAX(CASE WHEN sc.stage='human' THEN sc.scores END) AS human_scores,
-                        MAX(CASE WHEN sc.stage='ai' THEN sc.scores END) AS ai_scores,
-                        MAX(CASE WHEN sc.stage='final' THEN sc.scores END) AS final_scores
+    output = io.BytesIO()
 
-                    FROM studentDB s
-                    LEFT JOIN scoreDB sc
-                        ON s.student_id = sc.student_id
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="scores")
 
-                    WHERE s.project_id = :pid
-                    GROUP BY s.student_id
-                """),
-                {"pid": project_id}
-            ).mappings().all()
+    output.seek(0)
 
-        if not rows:
-            return {"status": "error", "message": "학생 데이터 없음"}, 404
-
-        df = pd.DataFrame(rows)
-
-        # JSON 컬럼 문자열 변환
-        for col in ["human_scores", "ai_scores", "final_scores"]:
-            if col in df.columns:
-                df[col] = df[col].apply(
-                    lambda x: json.dumps(x, ensure_ascii=False)
-                    if isinstance(x, dict)
-                    else x
-                )
-
-        # ---- 메모리 Excel 생성 ----
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-            df.to_excel(writer, index=False, sheet_name="Results")
-
-        output.seek(0)
-
-        return send_file(
-            output,
-            as_attachment=True,
-            download_name=f"{project_name}_grading_results.xlsx",
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-
-    except Exception as e:
-        return {"status": "error", "message": str(e)}, 500
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=f"{project_name}_scores.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 def get_project_id(conn, project_name):
     row = conn.execute(
@@ -457,50 +423,6 @@ def ai_grade():
     }
 
 
-@app.post("/add_final_score")
-def add_final_score():
-
-    data = request.json
-
-    score_uid = data["score_uid"]
-    student_id = data["student_id"]
-    rater_uid = data["rater_uid"]
-    rater_name = data["rater_name"]
-    project_name = data["project_name"]
-    scores = data["scores"]   # {logic:7, creativity:8}
-
-    engine = get_engine()
-
-    with engine.connect() as conn:
-
-        project_id = get_project_id(conn, project_name)
-
-        if not project_id:
-            return {"status": "error", "message": "project not found"}, 404
-
-        conn.execute(
-            sqlalchemy.text("""
-                INSERT INTO scoreDB
-                (score_id, student_id, rater_uid, rater_name,
-                 stage, scores, project_id, created_at)
-                VALUES
-                (:score_id, :student_id, :rater_uid, :rater_name,
-                 'final', :scores, :project_id, NOW())
-            """),
-            {
-                "score_id": score_uid,
-                "student_id": student_id,
-                "rater_uid": rater_uid,
-                "rater_name": rater_name,
-                "scores": json.dumps(scores, ensure_ascii=False),
-                "project_id": project_id
-            }
-        )
-
-        conn.commit()
-
-    return {"status": "ok"}
-
 @app.post("/login")
 def login():
     data = request.json
@@ -586,6 +508,43 @@ def login():
             "project_id": project_id,
             "criteria": criteria
         }
+    
+@app.delete("/delete_project/<project_name>")
+def delete_project(project_name):
+
+    engine = get_engine()
+
+    with engine.begin() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"success": False, "message": "project not found"}, 404
+
+        conn.execute(
+            sqlalchemy.text("DELETE FROM ai_feedback_log WHERE project_id = :pid"),
+            {"pid": project_id}
+        )
+
+        conn.execute(
+            sqlalchemy.text("DELETE FROM scoreDB WHERE project_id = :pid"),
+            {"pid": project_id}
+        )
+
+        conn.execute(
+            sqlalchemy.text("DELETE FROM studentDB WHERE project_id = :pid"),
+            {"pid": project_id}
+        )
+
+        conn.execute(
+            sqlalchemy.text("DELETE FROM raterDB WHERE project_id = :pid"),
+            {"pid": project_id}
+        )
+
+    return {
+        "success": True,
+        "message": f"Project {project_name} 데이터 삭제 완료"
+    }
 
 
 # 프런트엔드 서빙
