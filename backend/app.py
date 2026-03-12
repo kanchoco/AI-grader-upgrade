@@ -392,62 +392,62 @@ def ai_grade():
             }
         )
 
-    ai_scores = ai_result["scores"]
-    ai_rationales = ai_result["rationales"]
-    ai_keys = ai_result["key_sentences"]
-    MODEL_VERSION = "gemini-2.5-flash"
-    for criterion, score in ai_scores.items():
+        ai_scores = ai_result["scores"]
+        ai_rationales = ai_result["rationales"]
+        ai_keys = ai_result["key_sentences"]
+        MODEL_VERSION = "gemini-2.5-flash"
+        for criterion, score in ai_scores.items():
 
-        rationale_list = ai_rationales.get(criterion, [])
-        key_sentence_list = ai_keys.get(criterion, [])
+            rationale_list = ai_rationales.get(criterion, [])
+            key_sentence_list = ai_keys.get(criterion, [])
 
-        rationale_text = "\n".join(rationale_list)
-        key_sentence_text = "\n".join(key_sentence_list)
+            rationale_text = "\n".join(rationale_list)
+            key_sentence_text = "\n".join(key_sentence_list)
 
-        conn.execute(
-            sqlalchemy.text("""
-                INSERT INTO ai_feedback_log
-                (
-                    student_id,
-                    criterion_name,
-                    score,
-                    rationale,
-                    key_sentence,
-                    model_name,
-                    raw_response,
-                    created_at,
-                    project_id,
-                    rater_uid,
-                    rater_name
-                )
-                VALUES
-                (
-                    :student_id,
-                    :criterion_name,
-                    :score,
-                    :rationale,
-                    :key_sentence,
-                    :model_name,
-                    :raw_response,
-                    NOW(),
-                    :project_id,
-                    :rater_uid,
-                    :rater_name
-                )
-            """),
-            {
-                "student_id": student_id,
-                "criterion_name": criterion,
-                "score": score,
-                "rationale": rationale_text,
-                "key_sentence": key_sentence_text,
-                "model_name": MODEL_VERSION,
-                "raw_response": json.dumps(ai_result, ensure_ascii=False),
-                "project_id": project_id,
-                "rater_uid": rater_uid,
-                "rater_name": rater_name
-            }
-        )
+            conn.execute(
+                sqlalchemy.text("""
+                    INSERT INTO ai_feedback_log
+                    (
+                        student_id,
+                        criterion_name,
+                        score,
+                        rationale,
+                        key_sentence,
+                        model_name,
+                        raw_response,
+                        created_at,
+                        project_id,
+                        rater_uid,
+                        rater_name
+                    )
+                    VALUES
+                    (
+                        :student_id,
+                        :criterion_name,
+                        :score,
+                        :rationale,
+                        :key_sentence,
+                        :model_name,
+                        :raw_response,
+                        NOW(),
+                        :project_id,
+                        :rater_uid,
+                        :rater_name
+                    )
+                """),
+                {
+                    "student_id": student_id,
+                    "criterion_name": criterion,
+                    "score": score,
+                    "rationale": rationale_text,
+                    "key_sentence": key_sentence_text,
+                    "model_name": MODEL_VERSION,
+                    "raw_response": json.dumps(ai_result, ensure_ascii=False),
+                    "project_id": project_id,
+                    "rater_uid": rater_uid,
+                    "rater_name": rater_name
+                }
+            )
 
 
     return {
