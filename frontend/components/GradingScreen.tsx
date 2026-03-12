@@ -132,7 +132,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
       setAiResult(data.ai_result);
       setScoreUid(data.score_uid);
     } catch (err) {
-      alert(`[Student #${student.student_id}] AI 채점 실패. 다시 시도해주세요.`);
+      alert(`[Student #${student.student_name}] AI 채점 실패. 다시 시도해주세요.`);
       setAiError(true);
       setIsScoreLocked(false);
     } finally {
@@ -146,7 +146,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
       return;
     }
     
-    if (!window.confirm(`Student #${student.student_id} 점수를 최종 확정하시겠습니까? (수정 불가)`)) {
+    if (!window.confirm(`Student #${student.student_name} 점수를 최종 확정하시겠습니까? (수정 불가)`)) {
         return;
     }
 
