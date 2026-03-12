@@ -317,6 +317,7 @@ def ai_grade():
         return {"success": False, "message": "Invalid JSON"}, 400
 
     student_id = data["student_id"]
+    student_name = data["student_name"]
     rater_uid = data["rater_uid"]
     rater_name = data["rater_name"]
     project_name = data["project_name"]

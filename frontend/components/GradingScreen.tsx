@@ -112,8 +112,8 @@ const GradingRow: React.FC<GradingRowProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          student_uid: student.student_uid,
           student_id: student.student_id,
+          student_name: student.student_name,
           student_answer: student.student_answer,
           rater_uid: raterUid,
           rater_name: raterId,
@@ -156,8 +156,8 @@ const GradingRow: React.FC<GradingRowProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           score_uid: scoreUid,
-          student_uid: student.student_uid,
           student_id: student.student_id,
+          student_name: student.student_name,
           rater_uid: raterUid,
           rater_name: raterId,
           project_name: projectName,
@@ -168,7 +168,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
       const data = await res.json();
       if (data.status === 'ok') {
         setIsConfirmed(true);
-        alert(`Student #${student.student_id} 점수 확정 완료!`);
+        alert(`Student #${student.student_name} 점수 확정 완료!`);
       } else {
         alert('확정 실패');
       }
