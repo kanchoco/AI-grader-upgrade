@@ -317,7 +317,7 @@ def ai_grade():
         return {"success": False, "message": "Invalid JSON"}, 400
 
     student_id = data["student_id"]
-    rater_id = data["rater_id"]
+    rater_uid = data["rater_uid"]
     rater_name = data["rater_name"]
     project_name = data["project_name"]
     student_answer = data["student_answer"]
@@ -365,7 +365,7 @@ def ai_grade():
             {
                 "score_id": score_uid,
                 "student_id": student_id,
-                "rater_id": rater_id,
+                "rater_id": rater_uid,
                 "rater_name": rater_name,
                 "scores": json.dumps(human_scores, ensure_ascii=False),
                 "project_id": project_id
@@ -384,7 +384,7 @@ def ai_grade():
             {
                 "score_id": score_uid,
                 "student_id": student_id,
-                "rater_uid": rater_id,
+                "rater_uid": rater_uid,
                 "rater_name": rater_name,
                 "scores": json.dumps(ai_scores, ensure_ascii=False),
                 "project_id": project_id
@@ -443,7 +443,7 @@ def ai_grade():
                 "model_name": MODEL_VERSION,
                 "raw_response": json.dumps(ai_result, ensure_ascii=False),
                 "project_id": project_id,
-                "rater_uid": rater_id,
+                "rater_uid": rater_uid,
                 "rater_name": rater_name
             }
         )
