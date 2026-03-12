@@ -341,8 +341,9 @@ def ai_grade():
 
         prompt_text = project["prompt_text"] if project else ""
 
+        criteria_list = [c["name"] for c in criteria_data]
         # AI 채점 실행
-        ai_result = run_ai_grading(student_answer, prompt_text)
+        ai_result = run_ai_grading(student_answer, prompt_text, criteria_list)
 
         score_uid = str(uuid.uuid4())
 
