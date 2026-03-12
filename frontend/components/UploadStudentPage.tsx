@@ -429,16 +429,16 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
               <button
                 className="btn btn-danger"
                 onClick={handleDeleteProject}
-                disabled={deleteProjectInput.trim() !== projectName.trim()}
+                disabled={!deleteProjectInput || deleteProjectInput.trim() !== projectName.trim()}
               >
                 삭제
               </button>
 
               <button
                 className="btn"
-                onClick={() => setDeleteModalOpen(false);
+                onClick={() => {setDeleteModalOpen(false);
                 setDeleteProjectInput("");
-                }
+                }}
               >
                 취소
               </button>
@@ -472,16 +472,16 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
               <button
                 className="btn btn-success"
                 onClick={handleExportProject}
-                disabled={exportProjectInput.trim() !== projectName.trim()}
+                disabled={!deleteProjectInput || deleteProjectInput.trim() !== projectName.trim()}
               >
                 내보내기
               </button>
 
               <button
                 className="btn"
-                onClick={() => setExportModalOpen(false);
+                onClick={() => {setExportModalOpen(false);
                 setExportProjectInput("");
-                }
+                }}
               >
                 취소
               </button>
