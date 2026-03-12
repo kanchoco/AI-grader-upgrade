@@ -114,6 +114,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
         body: JSON.stringify({
           student_uid: student.student_uid,
           student_id: student.student_id,
+          student_answer: student.student_answer,
           rater_uid: raterUid,
           rater_name: raterId,
           project_name: projectName,

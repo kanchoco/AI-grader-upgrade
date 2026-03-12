@@ -34,6 +34,7 @@ def normalize_score(n):
 
 
 def validate(parsed: dict):
+
     if not isinstance(parsed, dict):
         raise ValueError("응답 파싱 실패")
 
@@ -43,27 +44,30 @@ def validate(parsed: dict):
 
     if not isinstance(scores, dict):
         scores = {}
+
     if not isinstance(rationales, dict):
         rationales = {}
+
     if not isinstance(key_sentences, dict):
         key_sentences = {}
 
-    # 점수 정규화 (1~10 고정)
-    ct = normalize_score(scores.get("criticalThinking", 1))
-    sk = normalize_score(scores.get("scientificKnowledge", 1))
+    parsed_scores = {}
+    parsed_rationales = {}
+    parsed_key_sentences = {}
 
-    parsed["scores"] = {
-        "criticalThinking": ct,
-        "scientificKnowledge": sk,
-    }
+    # scores에 있는 criteria 기준으로 처리
+    for criterion, score in scores.items():
 
-    for k in ["criticalThinking", "scientificKnowledge"]:
+        # 점수 정규화
+        score = normalize_score(score)
+        parsed_scores[criterion] = score
 
-        r = rationales.get(k, [])
-        ks = key_sentences.get(k, [])
+        r = rationales.get(criterion, [])
+        ks = key_sentences.get(criterion, [])
 
         if not isinstance(r, list):
             r = []
+
         if not isinstance(ks, list):
             ks = []
 
@@ -74,83 +78,77 @@ def validate(parsed: dict):
         while len(ks) < 2:
             ks.append("관련 문장 부족")
 
-        # 개수 불일치 보정
+        # 개수 맞추기
         min_len = min(len(r), len(ks))
         r = r[:min_len]
         ks = ks[:min_len]
 
-        parsed["rationales"][k] = r
-        parsed["keySentences"][k] = ks
+        parsed_rationales[criterion] = r
+        parsed_key_sentences[criterion] = ks
 
-def fallback_response(reason: str = "모델 응답 오류"):
+    parsed["scores"] = parsed_scores
+    parsed["rationales"] = parsed_rationales
+    parsed["keySentences"] = parsed_key_sentences
+
+
+def fallback_response(criteria: list[str], reason: str = "모델 응답 오류"):
+
+    scores = {}
+    rationales = {}
+    key_sentences = {}
+
+    for c in criteria:
+
+        scores[c] = 1
+
+        rationales[c] = [
+            f"{reason}로 기본 점수 적용함",
+            "형식 불안정으로 최소 점수 처리함"
+        ]
+
+        key_sentences[c] = [
+            "원문 분석 실패",
+            "원문 분석 실패"
+        ]
+
     return {
-        "scores": {
-            "scientificKnowledge": 1,
-            "criticalThinking": 1
-        },
-        "rationales": {
-            "scientificKnowledge": [
-                f"{reason}로 기본 점수 적용함",
-                "형식 불안정으로 최소 점수 처리함"
-            ],
-            "criticalThinking": [
-                f"{reason}로 기본 점수 적용함",
-                "형식 불안정으로 최소 점수 처리함"
-            ]
-        },
-        "keySentences": {
-            "scientificKnowledge": [
-                "원문 분석 실패",
-                "원문 분석 실패"
-            ],
-            "criticalThinking": [
-                "원문 분석 실패",
-                "원문 분석 실패"
-            ]
-        }
+        "scores": scores,
+        "rationales": rationales,
+        "keySentences": key_sentences
     }
 
 
 def analyze_essay(essay: str, prompt_text: str) -> dict:
-    rubric_prompt = prompt_text
-
-    canon = normalize(essay)
 
     prompt = f"""
-당신은 전문 교육 조교입니다.
-아래 학생 글을 평가하세요.
+{prompt_text}
 
-{rubric_prompt}
-
-⚠️`keySentences`는 반드시 학생 글에 있는 문장을 **토씨 하나 틀리지 않고 그대로(Exact Match)** 가져와야 합니다.
-⚠️`rationales`는 위에서 정의한 **'~함' 체**로 간결하게 작성하십시오.
+⚠️`scores`, `rationales`, `keySentences`의 key는 **rubric에서 제시된 평가 항목 이름을 그대로 사용해야 합니다.**
+⚠️`keySentences`는 반드시 학생 글에서 **Exact Match**로 가져와야 합니다.
+⚠️`rationales`는 '~함' 체로 간결하게 작성하십시오.
 ⚠️ 반드시 아래 JSON 스키마를 정확히 따르시오.
-⚠️ 키 이름, 중첩 구조, 배열 형태를 절대 변경하지 마시오.
 ⚠️ JSON 외 텍스트가 있으면 오류로 간주됨.
+⚠️ JSON만 출력해야 합니다.
 
-출력 JSON 스키마 (예시 형식 그대로 유지):
+JSON 형식:
 
 {{
   "scores": {{
-    "scientificKnowledge": 1~10 사이의 정수,
-    "criticalThinking": 1~10 사이의 정수
+    "<criterion_name>": 1~10
   }},
   "rationales": {{
-    "scientificKnowledge": ["근거1", "근거2"],
-    "criticalThinking": ["근거1", "근거2"]
+    "<criterion_name>": ["근거1","근거2"]
   }},
   "keySentences": {{
-    "scientificKnowledge": ["문장1", "문장2"],
-    "criticalThinking": ["문장1", "문장2"]
+    "<criterion_name>": ["문장1","문장2"]
   }}
 }}
 
 학생 글:
 ---
-{canon}
+{essay}
 ---
 """
-
 
     model = genai.GenerativeModel(
         MODEL_VERSION,
@@ -159,59 +157,55 @@ def analyze_essay(essay: str, prompt_text: str) -> dict:
             "top_k": 1,
             "top_p": 0,
             "candidate_count": 1,
+            "response_mime_type": "application/json"
         }
     )
 
     response = model.generate_content(prompt)
-    raw_text = response.text
 
-    if not raw_text or not raw_text.strip():
-        raise ValueError("Gemini returned empty response")
+    raw_text = response.text.strip()
 
-    raw_text = raw_text.strip()
-
-    # ```json ``` 제거 방어
     if raw_text.startswith("```"):
-        raw_text = (
-            raw_text
-            .replace("```json", "")
-            .replace("```", "")
-            .strip()
-        )
+        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
 
-    try:
-        parsed = json.loads(raw_text)
-    except json.JSONDecodeError:
-        return fallback_response("JSON 파싱 실패")
+    parsed = json.loads(raw_text)
 
-    try:
-        validate(parsed)
-    except Exception as e:
-        print("VALIDATE ERROR:", e)
-        return fallback_response(str(e))
+    validate(parsed)
 
     return parsed
 
+def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_retry: int = 3):
 
-def run_ai_grading(essay_text: str, prompt_text: str):
-    try:
-        parsed = analyze_essay(essay_text, prompt_text)
-    except Exception as e:
-        print("AI GRADING ERROR:", e)
-        parsed = fallback_response(str(e))
+    last_error = None
+
+    for attempt in range(max_retry + 1):
+
+        try:
+
+            parsed = analyze_essay(essay_text, prompt_text)
+
+            return {
+                "success": True,
+                "scores": parsed.get("scores", {}),
+                "rationales": parsed.get("rationales", {}),
+                "key_sentences": parsed.get("keySentences", {})
+            }
+
+        except Exception as e:
+
+            print(f"AI GRADING ERROR (attempt {attempt+1}):", e)
+
+            last_error = e
+
+            if attempt < max_retry:
+                continue
+
+    # 최종 실패 fallback
+    fallback = fallback_response(criteria, str(last_error))
 
     return {
-        "success": True,
-        "scores": {
-            "scientific": parsed["scores"]["scientificKnowledge"],
-            "critical": parsed["scores"]["criticalThinking"],
-        },
-        "rationales": {
-            "scientific": parsed["rationales"]["scientificKnowledge"],
-            "critical": parsed["rationales"]["criticalThinking"],
-        },
-        "key_sentences": {
-            "scientific": parsed["keySentences"]["scientificKnowledge"],
-            "critical": parsed["keySentences"]["criticalThinking"],
-        }
+        "success": False,
+        "scores": fallback["scores"],
+        "rationales": fallback["rationales"],
+        "key_sentences": fallback["keySentences"]
     }

@@ -317,9 +317,10 @@ def ai_grade():
         return {"success": False, "message": "Invalid JSON"}, 400
 
     student_id = data["student_id"]
-    rater_uid = data["rater_uid"]
+    rater_id = data["rater_id"]
     rater_name = data["rater_name"]
     project_name = data["project_name"]
+    student_answer = data["student_answer"]
 
     criteria_data = data["criteria"]   # [{name:"logic", expert_score:7}...]
 
@@ -328,32 +329,6 @@ def ai_grade():
     with engine.connect() as conn:
 
         project_id = get_project_id(conn, project_name)
-
-        if not project_id:
-            return {"success": False, "message": "project not found"}, 404
-
-
-        student = conn.execute(
-            sqlalchemy.text("""
-                SELECT student_id, student_answer
-                FROM studentDB
-                WHERE student_name = :id
-                AND project_id = :pid
-            """),
-            {
-                "id": student_id,
-                "pid": project_id
-            }
-        ).mappings().fetchone()
-
-
-        if not student:
-            return {"success": False, "message": "student not found"}, 404
-
-
-        student_uid = student["student_uid"]
-        essay = student["student_answer"]
-
 
         project = conn.execute(
             sqlalchemy.text("""
@@ -366,33 +341,17 @@ def ai_grade():
 
         prompt_text = project["prompt_text"] if project else ""
 
-
         # AI 채점 실행
-        ai_result = run_ai_grading(essay, prompt_text)
+        ai_result = run_ai_grading(student_answer, prompt_text)
 
         score_uid = str(uuid.uuid4())
-
-
-        # -------------------------
-        # human score JSON 생성
-        # -------------------------
 
         human_scores = {}
 
         for c in criteria_data:
             human_scores[c["name"]] = c["expert_score"]
 
-
-        # -------------------------
-        # AI score JSON
-        # -------------------------
-
         ai_scores = ai_result["scores"]
-
-
-        # -------------------------
-        # human score 저장
-        # -------------------------
 
         conn.execute(
             sqlalchemy.text("""
@@ -400,23 +359,18 @@ def ai_grade():
                 (score_id, student_id, rater_uid, rater_name,
                  stage, scores, project_id, created_at)
                 VALUES
-                (:score_id, :student_id, :rater_uid, :rater_name,
+                (:score_id, :student_id, :rater_id, :rater_name,
                  'human', :scores, :project_id, NOW())
             """),
             {
                 "score_id": score_uid,
                 "student_id": student_id,
-                "rater_uid": rater_uid,
+                "rater_id": rater_id,
                 "rater_name": rater_name,
                 "scores": json.dumps(human_scores, ensure_ascii=False),
                 "project_id": project_id
             }
         )
-
-
-        # -------------------------
-        # AI score 저장
-        # -------------------------
 
         conn.execute(
             sqlalchemy.text("""
@@ -430,16 +384,71 @@ def ai_grade():
             {
                 "score_id": score_uid,
                 "student_id": student_id,
-                "rater_uid": rater_uid,
+                "rater_uid": rater_id,
                 "rater_name": rater_name,
                 "scores": json.dumps(ai_scores, ensure_ascii=False),
                 "project_id": project_id
             }
         )
 
+    ai_scores = ai_result["scores"]
+    ai_rationales = ai_result["rationales"]
+    ai_keys = ai_result["key_sentences"]
+    MODEL_VERSION = "gemini-2.5-flash"
+    for criterion, score in ai_scores.items():
+
+        rationale_list = ai_rationales.get(criterion, [])
+        key_sentence_list = ai_keys.get(criterion, [])
+
+        rationale_text = "\n".join(rationale_list)
+        key_sentence_text = "\n".join(key_sentence_list)
+
+        conn.execute(
+            sqlalchemy.text("""
+                INSERT INTO ai_feedback_log
+                (
+                    student_id,
+                    criterion_name,
+                    score,
+                    rationale,
+                    key_sentence,
+                    model_name,
+                    raw_response,
+                    created_at,
+                    project_id,
+                    rater_uid,
+                    rater_name
+                )
+                VALUES
+                (
+                    :student_id,
+                    :criterion_name,
+                    :score,
+                    :rationale,
+                    :key_sentence,
+                    :model_name,
+                    :raw_response,
+                    NOW(),
+                    :project_id,
+                    :rater_uid,
+                    :rater_name
+                )
+            """),
+            {
+                "student_id": student_id,
+                "criterion_name": criterion,
+                "score": score,
+                "rationale": rationale_text,
+                "key_sentence": key_sentence_text,
+                "model_name": MODEL_VERSION,
+                "raw_response": json.dumps(ai_result, ensure_ascii=False),
+                "project_id": project_id,
+                "rater_uid": rater_id,
+                "rater_name": rater_name
+            }
+        )
 
         conn.commit()
-
 
     return {
         "success": True,
