@@ -356,8 +356,7 @@ def ai_grade():
         # AI 채점 실행
         ai_result = run_ai_grading(student_answer, prompt_text, criteria_list)
         print("AI RESULT RAW:", ai_result)
-        human_score_uid = str(uuid.uuid4())
-        ai_score_uid = str(uuid.uuid4())
+        score_id = str(uuid.uuid4())
 
         human_scores = {}
 
@@ -376,7 +375,7 @@ def ai_grade():
                  'human', :scores, :project_id, NOW())
             """),
             {
-                "score_id": human_score_uid,
+                "score_id": score_id,
                 "student_id": student_id,
                 "rater_uid": rater_uid,
                 "rater_name": rater_name,
@@ -395,7 +394,7 @@ def ai_grade():
                  'ai', :scores, :project_id, NOW())
             """),
             {
-                "score_id": ai_score_uid,
+                "score_id": score_id,
                 "student_id": student_id,
                 "rater_uid": rater_uid,
                 "rater_name": rater_name,
@@ -407,6 +406,25 @@ def ai_grade():
         ai_scores = ai_result.get("scores", {})
         ai_rationales = ai_result.get("rationales", {})
         ai_keys = ai_result.get("key_sentences", {})
+
+        # criteria 기준으로 재매핑
+        mapped_scores = {}
+        mapped_rationales = {}
+        mapped_keys = {}
+
+        for i, criterion in enumerate(criteria_list):
+            ai_key = list(ai_scores.keys())[i]
+
+            mapped_scores[criterion] = ai_scores.get(ai_key)
+
+            mapped_rationales[criterion] = ai_rationales.get(ai_key, [])
+
+            mapped_keys[criterion] = ai_keys.get(ai_key, [])
+
+        ai_result["scores"] = mapped_scores
+        ai_result["rationales"] = mapped_rationales
+        ai_result["key_sentences"] = mapped_keys
+        
         MODEL_VERSION = "gemini-2.5-flash"
         if not isinstance(ai_scores, dict):
             ai_scores = {}
@@ -456,7 +474,7 @@ def ai_grade():
                 """),
                 {
                     "log_id": str(uuid.uuid4()),        
-                    "score_id": ai_score_uid,    
+                    "score_id": score_id,    
                     "student_id": student_id,
                     "criterion_name": criterion,
                     "score": score,
@@ -469,12 +487,11 @@ def ai_grade():
                     "rater_name": rater_name
                 }
             )
-
+    
 
     return {
         "success": True,
-        "human_score_uid": human_score_uid,
-        "ai_score_uid": ai_score_uid,
+        "score_id": score_id,
         "ai_result": ai_result
     }
 
