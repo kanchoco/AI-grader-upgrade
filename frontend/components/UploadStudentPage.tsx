@@ -159,11 +159,6 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       return;
     }
 
-    if (deleteProjectInput !== projectName) {
-      setMessage("프로젝트 이름이 일치하지 않습니다.");
-      return;
-    }
-
     try {
       const res = await fetch(`${apiUrl}/delete_project/${deleteProjectInput}`, {
         method: "DELETE"
@@ -188,11 +183,6 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
     if (!exportProjectInput.trim()) {
       setMessage("내보낼 프로젝트 이름을 입력하세요.");
-      return;
-    }
-
-    if (exportProjectInput.trim() !== projectName.trim()) {
-      setMessage("프로젝트 이름이 일치하지 않습니다.");
       return;
     }
 
@@ -421,7 +411,6 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
               <button
                 className="btn btn-danger"
                 onClick={handleDeleteProject}
-                disabled={!deleteProjectInput || deleteProjectInput.trim() !== projectName.trim()}
               >
                 삭제
               </button>
@@ -464,7 +453,6 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
               <button
                 className="btn btn-success"
                 onClick={handleExportProject}
-                disabled={!deleteProjectInput || deleteProjectInput.trim() !== projectName.trim()}
               >
                 내보내기
               </button>
