@@ -371,13 +371,13 @@ def ai_grade():
                 (score_id, student_id, rater_uid, rater_name,
                  stage, scores, project_id, created_at)
                 VALUES
-                (:score_id, :student_id, :rater_id, :rater_name,
+                (:score_id, :student_id, :rater_uid, :rater_name,
                  'human', :scores, :project_id, NOW())
             """),
             {
                 "score_id": score_uid,
                 "student_id": student_id,
-                "rater_id": rater_uid,
+                "rater_uid": rater_uid,
                 "rater_name": rater_name,
                 "scores": json.dumps(human_scores, ensure_ascii=False),
                 "project_id": project_id
