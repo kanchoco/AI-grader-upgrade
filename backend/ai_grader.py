@@ -2,24 +2,14 @@ import os
 import json
 import hashlib
 from typing import Dict, Any
-import google as genai
+from google import genai
 import re
 
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+client = genai.Client(
+    api_key=os.environ["GEMINI_API_KEY"]
+)
 
 MODEL_VERSION = "gemini-2.5-flash"
-
-model = genai.GenerativeModel(
-    MODEL_VERSION,
-    generation_config={
-        "temperature": 0,
-        "top_k": 1,
-        "top_p": 0,
-        "candidate_count": 1,
-        "response_mime_type": "application/json",
-        "max_output_tokens": 512
-    }
-)
 
 def normalize(s: str) -> str:
     return s.replace("\r\n", "\n").strip()
@@ -101,6 +91,8 @@ def validate(parsed: dict):
     parsed["rationales"] = parsed_rationales
     parsed["keySentences"] = parsed_key_sentences
 
+    return parsed
+
 
 def fallback_response(criteria: list[str], ai_result: dict | None = None, reason: str = "모델 응답 오류"):
 
@@ -178,7 +170,20 @@ essay:
 ---
 """
 
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(
+    model=MODEL_VERSION,
+    contents=prompt,
+    generation_config={
+        "temperature": 0,
+        "top_k": 1,
+        "top_p": 0,
+        "candidate_count": 1,
+        "max_output_tokens": 512
+        },
+        response_mime_type="application/json"
+    )
+
+    raw_text = (response.text or "").strip()
 
     raw_text = response.text.strip()
 
@@ -187,7 +192,7 @@ essay:
 
     parsed = json.loads(raw_text)
 
-    validate(parsed)
+    parsed = validate(parsed)
 
     return parsed
 
