@@ -355,7 +355,7 @@ def ai_grade():
         criteria_list = [c["name"] for c in criteria_data]
         # AI 채점 실행
         ai_result = run_ai_grading(student_answer, prompt_text, criteria_list)
-
+        print("AI RESULT RAW:", ai_result)
         score_uid = str(uuid.uuid4())
 
         human_scores = {}
@@ -403,10 +403,13 @@ def ai_grade():
             }
         )
 
-        ai_scores = ai_result["scores"]
-        ai_rationales = ai_result["rationales"]
-        ai_keys = ai_result["key_sentences"]
+        ai_scores = ai_result.get("scores", {})
+        ai_rationales = ai_result.get("rationales", {})
+        ai_keys = ai_result.get("key_sentences", {})
         MODEL_VERSION = "gemini-2.5-flash"
+        if not isinstance(ai_scores, dict):
+            ai_scores = {}
+
         for criterion, score in ai_scores.items():
 
             rationale_list = ai_rationales.get(criterion, [])
