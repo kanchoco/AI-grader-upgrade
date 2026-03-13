@@ -188,7 +188,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
     try {
       const res = await fetch(
-        `${apiUrl}/export_db?projectName=${exportProjectInput}`
+        `${apiUrl}/export_project_excel/${exportProjectInput}`
       );
 
       if (!res.ok) {
