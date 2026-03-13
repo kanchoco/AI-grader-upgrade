@@ -407,24 +407,30 @@ def ai_grade():
         ai_rationales = ai_result.get("rationales", {})
         ai_keys = ai_result.get("key_sentences", {})
 
-        # criteria 기준으로 재매핑
         mapped_scores = {}
         mapped_rationales = {}
         mapped_keys = {}
 
+        ai_keys_list = list(ai_scores.keys())
+
         for i, criterion in enumerate(criteria_list):
-            ai_key = list(ai_scores.keys())[i]
 
-            mapped_scores[criterion] = ai_scores.get(ai_key)
+            if i < len(ai_keys_list):
+                ai_key = ai_keys_list[i]
 
-            mapped_rationales[criterion] = ai_rationales.get(ai_key, [])
+                mapped_scores[criterion] = ai_scores.get(ai_key)
+                mapped_rationales[criterion] = ai_rationales.get(ai_key, [])
+                mapped_keys[criterion] = ai_keys.get(ai_key, [])
 
-            mapped_keys[criterion] = ai_keys.get(ai_key, [])
+            else:
+                mapped_scores[criterion] = None
+                mapped_rationales[criterion] = []
+                mapped_keys[criterion] = []
 
         ai_result["scores"] = mapped_scores
         ai_result["rationales"] = mapped_rationales
         ai_result["key_sentences"] = mapped_keys
-        
+
         MODEL_VERSION = "gemini-2.5-flash"
         if not isinstance(ai_scores, dict):
             ai_scores = {}
