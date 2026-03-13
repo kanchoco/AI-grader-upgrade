@@ -2,13 +2,24 @@ import os
 import json
 import hashlib
 from typing import Dict, Any
-import google.generativeai as genai
+import google as genai
 import re
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 MODEL_VERSION = "gemini-2.5-flash"
 
+model = genai.GenerativeModel(
+    MODEL_VERSION,
+    generation_config={
+        "temperature": 0,
+        "top_k": 1,
+        "top_p": 0,
+        "candidate_count": 1,
+        "response_mime_type": "application/json",
+        "max_output_tokens": 512
+    }
+)
 
 def normalize(s: str) -> str:
     return s.replace("\r\n", "\n").strip()
@@ -91,25 +102,46 @@ def validate(parsed: dict):
     parsed["keySentences"] = parsed_key_sentences
 
 
-def fallback_response(criteria: list[str], reason: str = "모델 응답 오류"):
+def fallback_response(criteria: list[str], ai_result: dict | None = None, reason: str = "모델 응답 오류"):
 
     scores = {}
     rationales = {}
     key_sentences = {}
 
-    for c in criteria:
+    ai_scores = ai_result.get("scores", {}) if ai_result else {}
+    ai_rationales = ai_result.get("rationales", {}) if ai_result else {}
+    ai_keys = ai_result.get("keySentences", {}) if ai_result else {}
 
-        scores[c] = 1
+    ai_keys_list = list(ai_scores.keys())
 
-        rationales[c] = [
-            f"{reason}로 기본 점수 적용함",
-            "형식 불안정으로 최소 점수 처리함"
-        ]
+    for i, c in enumerate(criteria):
 
-        key_sentences[c] = [
-            "원문 분석 실패",
-            "원문 분석 실패"
-        ]
+        if i < len(ai_keys_list):
+
+            k = ai_keys_list[i]
+
+            scores[c] = ai_scores.get(k, 0)
+
+            rationales[c] = ai_rationales.get(
+                k,
+                [f"{reason}로 기본 점수 적용함"]
+            )
+
+            key_sentences[c] = ai_keys.get(
+                k,
+                ["원문 분석 실패"]
+            )
+
+        else:
+
+            scores[c] = 0
+
+            rationales[c] = [
+                f"{reason}로 기본 점수 적용함",
+                "형식 오류로 최소 점수 처리함"
+            ]
+
+            key_sentences[c] = ["원문 분석 실패"]
 
     return {
         "scores": scores,
@@ -123,43 +155,28 @@ def analyze_essay(essay: str, prompt_text: str) -> dict:
     prompt = f"""
 {prompt_text}
 
-⚠️`scores`, `rationales`, `keySentences`의 key는 **rubric에서 제시된 평가 항목 이름을 그대로 사용해야 합니다.**
-⚠️`keySentences`는 반드시 학생 글에서 **Exact Match**로 가져와야 합니다.
-⚠️`rationales`는 '~함' 체로 간결하게 작성하십시오.
-⚠️ 반드시 아래 JSON 스키마를 정확히 따르시오.
-⚠️ JSON 외 텍스트가 있으면 오류로 간주됨.
-⚠️ JSON만 출력해야 합니다.
+Return JSON only.
 
-JSON 형식:
-
+schema:
 {{
-  "scores": {{
-    "<criterion_name>": 1~10
-  }},
-  "rationales": {{
-    "<criterion_name>": ["근거1","근거2"]
-  }},
-  "keySentences": {{
-    "<criterion_name>": ["문장1","문장2"]
-  }}
+"scores":{{"<criterion>":1-10}},
+"rationales":{{"<criterion>":["reason"]}},
+"keySentences":{{"<criterion>":["sentence"]}}
 }}
 
-학생 글:
+rules:
+- keys must match rubric criterion names exactly
+- keySentences must be exact substrings from essay
+- rationales must be short phrases ending with '~함'
+- max 2 rationales
+- max 1 key sentence
+- no text outside JSON
+
+essay:
 ---
 {essay}
 ---
 """
-
-    model = genai.GenerativeModel(
-        MODEL_VERSION,
-        generation_config={
-            "temperature": 0,
-            "top_k": 1,
-            "top_p": 0,
-            "candidate_count": 1,
-            "response_mime_type": "application/json"
-        }
-    )
 
     response = model.generate_content(prompt)
 
@@ -184,11 +201,19 @@ def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_r
 
             parsed = analyze_essay(essay_text, prompt_text)
 
+            scores = parsed.get("scores", {})
+            rationales = parsed.get("rationales", {})
+            key_sentences = parsed.get("keySentences", {})
+
+            # criterion 개수 검증
+            if set(scores.keys()) != set(criteria):
+                raise ValueError("criterion mismatch")
+
             return {
                 "success": True,
-                "scores": parsed.get("scores", {}),
-                "rationales": parsed.get("rationales", {}),
-                "key_sentences": parsed.get("keySentences", {})
+                "scores": scores,
+                "rationales": rationales,
+                "key_sentences": key_sentences
             }
 
         except Exception as e:
@@ -201,7 +226,7 @@ def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_r
                 continue
 
     # 최종 실패 fallback
-    fallback = fallback_response(criteria, str(last_error))
+    fallback = fallback_response(criteria, parsed if 'parsed' in locals() else None, str(last_error))
 
     return {
         "success": False,
