@@ -2,15 +2,23 @@ import os
 import json
 import hashlib
 from typing import Dict, Any
-from google import genai
+import google.generativeai as genai
 import re
 
-client = genai.Client(
-    api_key=os.environ["GEMINI_API_KEY"]
-)
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
 MODEL_VERSION = "gemini-2.5-flash"
-
+model = genai.GenerativeModel(
+    MODEL_VERSION,
+    generation_config={
+        "temperature": 0,
+        "top_k": 1,
+        "top_p": 0,
+        "candidate_count": 1,
+        "response_mime_type": "application/json",
+        "max_output_tokens": 512
+    }
+)
 def normalize(s: str) -> str:
     return s.replace("\r\n", "\n").strip()
 
@@ -170,18 +178,7 @@ essay:
 ---
 """
 
-    response = client.models.generate_content(
-    model=MODEL_VERSION,
-    contents=prompt,
-    generation_config={
-        "temperature": 0,
-        "top_k": 1,
-        "top_p": 0,
-        "candidate_count": 1,
-        "max_output_tokens": 512
-        },
-        response_mime_type="application/json"
-    )
+    response = model.generate_content(prompt)
 
     raw_text = (response.text or "").strip()
 
