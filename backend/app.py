@@ -165,14 +165,40 @@ def export_project_excel(project_name):
         rows = conn.execute(
             sqlalchemy.text("""
                 SELECT
-                    student_id,
-                    rater_name,
-                    stage,
-                    scores,
-                    created_at
-                FROM scoreDB
-                WHERE project_id = :pid
-                ORDER BY student_id
+                    s.student_id,
+                    st.student_name,
+                    s.rater_name,
+                    s.stage,
+                    s.scores,
+                    s.created_at,
+
+                    GROUP_CONCAT(
+                        CONCAT(a.criterion_name, ': ', a.rationale)
+                        SEPARATOR '\n\n'
+                    ) AS ai_rationales
+
+                FROM scoreDB s
+
+                LEFT JOIN studentDB st
+                ON s.student_id = st.student_id
+                AND s.project_id = st.project_id
+
+                LEFT JOIN ai_feedback_log a
+                ON s.student_id = a.student_id
+                AND s.project_id = a.project_id
+                AND s.stage = 'ai'
+
+                WHERE s.project_id = :pid
+
+                GROUP BY
+                    s.student_id,
+                    st.student_name,
+                    s.rater_name,
+                    s.stage,
+                    s.scores,
+                    s.created_at
+
+                ORDER BY s.student_id
             """),
             {"pid": project_id}
         ).mappings().all()
