@@ -378,10 +378,6 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 <button
                   className="btn btn-danger"
                   onClick={() =>   {
-                    if (!projectName.trim()) {
-                      setMessage("프로젝트명을 먼저 입력하세요.");
-                      return;
-                    }
                     setDeleteModalOpen(true)}}
                 >
                   프로젝트 데이터 지우기
@@ -390,10 +386,6 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 <button
                   className="btn btn-success"
                   onClick={() => {
-                    if (!projectName.trim()) {
-                      setMessage("프로젝트명을 먼저 입력하세요.");
-                      return;
-                    }
                     setExportModalOpen(true)}}
                 >
                   DB 데이터 내보내기 (Excel)
