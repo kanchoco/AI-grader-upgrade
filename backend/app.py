@@ -423,6 +423,8 @@ def ai_grade():
                 sqlalchemy.text("""
                     INSERT INTO ai_feedback_log
                     (
+                        log_id,
+                        score_id,
                         student_id,
                         criterion_name,
                         score,
@@ -437,6 +439,8 @@ def ai_grade():
                     )
                     VALUES
                     (
+                        :log_id,
+                        :score_id,
                         :student_id,
                         :criterion_name,
                         :score,
@@ -451,6 +455,8 @@ def ai_grade():
                     )
                 """),
                 {
+                    "log_id": str(uuid.uuid4()),        
+                    "score_id": ai_score_uid,    
                     "student_id": student_id,
                     "criterion_name": criterion,
                     "score": score,
