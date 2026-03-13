@@ -494,3 +494,5 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     </>
   );
 };
+
+export default UploadStudentPage;
