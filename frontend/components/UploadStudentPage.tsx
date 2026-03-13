@@ -154,15 +154,26 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
   const handleDeleteProject = async () => {
 
-    if (!deleteProjectInput.trim()) {
+    const project = deleteProjectInput.trim();
+
+    if (!project) {
       setMessage("삭제할 프로젝트 이름을 입력하세요.");
       return;
     }
 
     try {
-      const res = await fetch(`${apiUrl}/delete_project/${deleteProjectInput}`, {
-        method: "DELETE"
-      });
+
+      const res = await fetch(
+        `${apiUrl}/delete_project/${project}`,
+        { method: "DELETE" }
+      );
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Delete API error:", text);
+        setMessage("프로젝트 삭제 실패");
+        return;
+      }
 
       const data = await res.json();
 
@@ -174,9 +185,11 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
         setMessage(data.message || "삭제 실패");
       }
 
-    } catch {
+    } catch (err) {
+      console.error(err);
       setMessage("삭제 중 서버 오류 발생");
     }
+
   };
 
   const handleExportProject = async () => {
@@ -187,30 +200,32 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     }
 
     try {
+
       const res = await fetch(
-        `${apiUrl}/export_project_excel/${exportProjectInput}`
+        `${apiUrl}/export_project_excel/${exportProjectInput.trim()}`
       );
 
       if (!res.ok) {
+        const text = await res.text();
+        console.log(text);
         setMessage("엑셀 다운로드 실패");
         return;
       }
 
       const blob = await res.blob();
+
       const url = window.URL.createObjectURL(blob);
 
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${exportProjectInput}_grading_results.xlsx`;
+      a.download = `${exportProjectInput}_scores.xlsx`;
+
       document.body.appendChild(a);
       a.click();
       a.remove();
 
-      setExportModalOpen(false);
-      setExportProjectInput("");
-
-    } catch {
-      setMessage("엑셀 다운로드 중 오류 발생");
+    } catch (e) {
+      setMessage("다운로드 오류");
     }
   };
 

@@ -165,7 +165,6 @@ def export_project_excel(project_name):
         rows = conn.execute(
             sqlalchemy.text("""
                 SELECT
-                    s.student_id,
                     st.student_name,
                     s.rater_name,
                     s.stage,
@@ -179,6 +178,27 @@ def export_project_excel(project_name):
 
                 FROM scoreDB s
 
+                JOIN (
+                    SELECT
+                        student_id,
+                        rater_name,
+                        stage,
+                        project_id,
+                        MAX(created_at) AS max_created
+                    FROM scoreDB
+                    WHERE project_id = :pid
+                    GROUP BY
+                        student_id,
+                        rater_name,
+                        stage,
+                        project_id
+                ) latest
+                ON s.student_id = latest.student_id
+                AND s.rater_name = latest.rater_name
+                AND s.stage = latest.stage
+                AND s.project_id = latest.project_id
+                AND s.created_at = latest.max_created
+
                 LEFT JOIN studentDB st
                 ON s.student_id = st.student_id
                 AND s.project_id = st.project_id
@@ -191,14 +211,13 @@ def export_project_excel(project_name):
                 WHERE s.project_id = :pid
 
                 GROUP BY
-                    s.student_id,
                     st.student_name,
                     s.rater_name,
                     s.stage,
                     s.scores,
                     s.created_at
 
-                ORDER BY s.student_id
+                ORDER BY st.student_name
             """),
             {"pid": project_id}
         ).mappings().all()
