@@ -356,7 +356,8 @@ def ai_grade():
         # AI 채점 실행
         ai_result = run_ai_grading(student_answer, prompt_text, criteria_list)
         print("AI RESULT RAW:", ai_result)
-        score_uid = str(uuid.uuid4())
+        human_score_uid = str(uuid.uuid4())
+        ai_score_uid = str(uuid.uuid4())
 
         human_scores = {}
 
@@ -375,7 +376,7 @@ def ai_grade():
                  'human', :scores, :project_id, NOW())
             """),
             {
-                "score_id": score_uid,
+                "score_id": human_score_uid,
                 "student_id": student_id,
                 "rater_uid": rater_uid,
                 "rater_name": rater_name,
@@ -394,7 +395,7 @@ def ai_grade():
                  'ai', :scores, :project_id, NOW())
             """),
             {
-                "score_id": score_uid,
+                "score_id": ai_score_uid,
                 "student_id": student_id,
                 "rater_uid": rater_uid,
                 "rater_name": rater_name,
@@ -466,7 +467,8 @@ def ai_grade():
 
     return {
         "success": True,
-        "score_uid": score_uid,
+        "human_score_uid": human_score_uid,
+        "ai_score_uid": ai_score_uid,
         "ai_result": ai_result
     }
 
