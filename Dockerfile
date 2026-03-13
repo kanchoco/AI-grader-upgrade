@@ -23,4 +23,4 @@ COPY --from=frontend /app/dist ./dist
 
 ENV PORT=8080
 
-CMD ["gunicorn", "-b", ":8080", "app:app"]
+CMD ["gunicorn", "-b", ":8080", "--timeout", "180", "app:app"]
