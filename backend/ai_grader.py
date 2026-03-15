@@ -15,7 +15,6 @@ model = genai.GenerativeModel(
         "top_k": 1,
         "top_p": 0,
         "candidate_count": 1,
-        "response_mime_type": "application/json",
         "max_output_tokens": 512
     }
 )
