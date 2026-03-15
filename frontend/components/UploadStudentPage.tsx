@@ -383,7 +383,8 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 <button
                   className="btn btn-danger"
                   onClick={() =>   {
-                    setDeleteModalOpen(true)}}
+                    setDeleteModalOpen(true);
+                    setMessage("")}}
                 >
                   프로젝트 데이터 지우기
                 </button>
@@ -391,7 +392,8 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 <button
                   className="btn btn-success"
                   onClick={() => {
-                    setExportModalOpen(true)}}
+                    setExportModalOpen(true);
+                    setMessage("")}}
                 >
                   DB 데이터 내보내기 (Excel)
                 </button>
