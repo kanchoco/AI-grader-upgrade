@@ -181,7 +181,20 @@ JSON 형식:
 
     response = model.generate_content(prompt)
 
-    raw_text = (getattr(response, "text", "") or "").strip()
+    raw_text = ""
+
+    # 1차 시도
+    if getattr(response, "text", None):
+        raw_text = response.text
+
+    # 2차 시도 (Gemini 구조)
+    elif getattr(response, "candidates", None):
+        try:
+            raw_text = response.candidates[0].content.parts[0].text
+        except Exception:
+            raw_text = ""
+
+    raw_text = raw_text.strip()
 
     if raw_text.startswith("```"):
         raw_text = raw_text.replace("```json", "").replace("```", "").strip()
