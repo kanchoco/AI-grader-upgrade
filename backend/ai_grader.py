@@ -42,7 +42,7 @@ def normalize_score(n):
 
 
 
-def validate(parsed: dict):
+def validate(parsed: dict, criteria: list[str]):
 
     if not isinstance(parsed, dict):
         raise ValueError("응답 파싱 실패")
@@ -64,10 +64,11 @@ def validate(parsed: dict):
     parsed_rationales = {}
     parsed_key_sentences = {}
 
-    # scores에 있는 criteria 기준으로 처리
-    for criterion, score in scores.items():
+    # criteria 기준으로 처리
+    for criterion in criteria:
 
-        # 점수 정규화
+        score = scores.get(criterion, 0)
+
         score = normalize_score(score)
         parsed_scores[criterion] = score
 
@@ -80,20 +81,16 @@ def validate(parsed: dict):
         if not isinstance(ks, list):
             ks = []
 
-        # 최소 2개 보장
         while len(r) < 2:
             r.append("근거 부족함")
 
         while len(ks) < 2:
             ks.append("관련 문장 부족")
 
-        # 개수 맞추기
         min_len = min(len(r), len(ks))
-        r = r[:min_len]
-        ks = ks[:min_len]
 
-        parsed_rationales[criterion] = r
-        parsed_key_sentences[criterion] = ks
+        parsed_rationales[criterion] = r[:min_len]
+        parsed_key_sentences[criterion] = ks[:min_len]
 
     parsed["scores"] = parsed_scores
     parsed["rationales"] = parsed_rationales
@@ -150,29 +147,33 @@ def fallback_response(criteria: list[str], ai_result: dict | None = None, reason
     }
 
 
-def analyze_essay(essay: str, prompt_text: str) -> dict:
+def analyze_essay_raw(essay: str, prompt_text: str) -> dict:
 
     prompt = f"""
 {prompt_text}
 
-Return JSON only.
+⚠️`scores`, `rationales`, `keySentences`의 key는 **rubric에서 제시된 평가 항목 이름을 그대로 사용해야 합니다.**
+⚠️`keySentences`는 반드시 학생 글에서 **Exact Match**로 가져와야 합니다.
+⚠️`rationales`는 '~함' 체로 간결하게 작성하십시오.
+⚠️ 반드시 아래 JSON 스키마를 정확히 따르시오.
+⚠️ JSON 외 텍스트가 있으면 오류로 간주됨.
+⚠️ JSON만 출력해야 합니다.
 
-schema:
+JSON 형식:
+
 {{
-"scores":{{"<criterion>":1-10}},
-"rationales":{{"<criterion>":["reason"]}},
-"keySentences":{{"<criterion>":["sentence"]}}
+  "scores": {{
+    "<criterion_name>": 1~10
+  }},
+  "rationales": {{
+    "<criterion_name>": ["근거1","근거2"]
+  }},
+  "keySentences": {{
+    "<criterion_name>": ["문장1","문장2"]
+  }}
 }}
 
-rules:
-- keys must match rubric criterion names exactly
-- keySentences must be exact substrings from essay
-- rationales must be short phrases ending with '~함'
-- max 2 rationales
-- max 1 key sentence
-- no text outside JSON
-
-essay:
+학생 글:
 ---
 {essay}
 ---
@@ -180,42 +181,49 @@ essay:
 
     response = model.generate_content(prompt)
 
-    raw_text = (response.text or "").strip()
-
-    raw_text = response.text.strip()
+    raw_text = (getattr(response, "text", "") or "").strip()
 
     if raw_text.startswith("```"):
         raw_text = raw_text.replace("```json", "").replace("```", "").strip()
 
-    parsed = json.loads(raw_text)
+    try:
+        parsed = json.loads(raw_text)
+    except Exception:
+        raise ValueError("JSON 파싱 실패")
 
-    parsed = validate(parsed)
+    if not isinstance(parsed, dict):
+        raise ValueError("JSON 구조 오류")
 
     return parsed
 
 def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_retry: int = 3):
 
     last_error = None
+    parsed = None
 
     for attempt in range(max_retry + 1):
 
         try:
 
-            parsed = analyze_essay(essay_text, prompt_text)
+            parsed = analyze_essay_raw(essay_text, prompt_text)
 
             scores = parsed.get("scores", {})
             rationales = parsed.get("rationales", {})
             key_sentences = parsed.get("keySentences", {})
 
-            # criterion 개수 검증
+            if not isinstance(scores, dict):
+                raise ValueError("scores 형식 오류")
+
             if set(scores.keys()) != set(criteria):
                 raise ValueError("criterion mismatch")
 
+            parsed = validate(parsed, criteria)
+
             return {
                 "success": True,
-                "scores": scores,
-                "rationales": rationales,
-                "key_sentences": key_sentences
+                "scores": parsed["scores"],
+                "rationales": parsed["rationales"],
+                "key_sentences": parsed["keySentences"]
             }
 
         except Exception as e:
@@ -227,8 +235,7 @@ def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_r
             if attempt < max_retry:
                 continue
 
-    # 최종 실패 fallback
-    fallback = fallback_response(criteria, parsed if 'parsed' in locals() else None, str(last_error))
+    fallback = fallback_response(criteria, parsed, str(last_error))
 
     return {
         "success": False,
