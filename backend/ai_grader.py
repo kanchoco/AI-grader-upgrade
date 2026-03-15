@@ -148,8 +148,9 @@ def fallback_response(criteria: list[str], ai_result: dict | None = None, reason
 
 def analyze_essay_raw(essay: str, prompt_text: str) -> dict:
 
-    prompt = f"""
-{prompt_text}
+    prompt = (
+        prompt_text
+        + """
 
 You are an automated essay grading system.
 
@@ -158,7 +159,7 @@ Return STRICT JSON only.
 Rules:
 - Output must be valid JSON
 - Do NOT include explanations
-- Do NOT include markdown or ```
+- Do NOT include markdown
 - Use double quotes for all keys
 - The keys in scores, rationales, and keySentences must EXACTLY match the rubric criterion names
 - keySentences must be exact quotes from the student essay
@@ -166,53 +167,26 @@ Rules:
 
 JSON schema:
 
-{{
-  "scores": {{
+{
+  "scores": {
     "<criterion_name>": integer (1-10)
-  }},
-  "rationales": {{
+  },
+  "rationales": {
     "<criterion_name>": ["근거1","근거2"]
-  }},
-  "keySentences": {{
+  },
+  "keySentences": {
     "<criterion_name>": ["문장1","문장2"]
-  }}
-}}
+  }
+}
 
 Student Essay:
 ---
-{essay}
+"""
+        + essay
+        + """
 ---
 """
-
-    response = model.generate_content(prompt)
-
-    raw_text = ""
-
-    # 1차 시도
-    if getattr(response, "text", None):
-        raw_text = response.text
-
-    # 2차 시도 (Gemini 구조)
-    elif getattr(response, "candidates", None):
-        try:
-            raw_text = response.candidates[0].content.parts[0].text
-        except Exception:
-            raw_text = ""
-
-    raw_text = raw_text.strip()
-
-    if raw_text.startswith("```"):
-        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
-
-    try:
-        parsed = json.loads(raw_text)
-    except Exception:
-        raise ValueError("JSON 파싱 실패")
-
-    if not isinstance(parsed, dict):
-        raise ValueError("JSON 구조 오류")
-
-    return parsed
+    )
 
 def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_retry: int = 3):
 
