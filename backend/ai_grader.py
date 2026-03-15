@@ -166,17 +166,17 @@ Rules:
 
 JSON schema:
 
-{
-  "scores": {
+{{
+  "scores": {{
     "<criterion_name>": integer (1-10)
-  },
-  "rationales": {
+  }},
+  "rationales": {{
     "<criterion_name>": ["근거1","근거2"]
-  },
-  "keySentences": {
+  }},
+  "keySentences": {{
     "<criterion_name>": ["문장1","문장2"]
-  }
-}
+  }}
+}}
 
 Student Essay:
 ---
