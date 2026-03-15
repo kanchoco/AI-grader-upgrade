@@ -136,3 +136,9 @@ body {
   gap: 10px;
   justify-content: flex-end;
 }
+
+.modal-message {
+  margin-top: 8px;
+  color: #e74c3c;
+  font-size: 14px;
+}

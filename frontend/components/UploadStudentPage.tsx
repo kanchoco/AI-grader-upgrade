@@ -171,7 +171,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       if (!res.ok) {
         const text = await res.text();
         console.error("Delete API error:", text);
-        setMessage("프로젝트 삭제 실패");
+        setMessage("존재하지 않는 프로젝트입니다.");
         return;
       }
 
@@ -208,7 +208,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       if (!res.ok) {
         const text = await res.text();
         console.log(text);
-        setMessage("엑셀 다운로드 실패");
+        setMessage("존재하지 않는 프로젝트입니다.");
         return;
       }
 
@@ -411,15 +411,19 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
             <h3>프로젝트 삭제</h3>
 
             <p>
-              삭제하려면 아래에 <b>{projectName}</b> 을(를) 정확히 입력하세요
+              삭제하려면 아래에 대상 프로젝트 이름을 정확히 입력하세요
             </p>
 
             <input
               className="input-field"
+              placeholder="프로젝트 이름 입력"
               value={deleteProjectInput}
               onChange={(e) => setDeleteProjectInput(e.target.value)}
-              placeholder={`프로젝트 이름: ${projectName}`}
             />
+
+            {message && (
+              <p className="modal-message">{message}</p>
+            )}
 
             <div className="modal-buttons">
 
@@ -453,15 +457,19 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
             <h3>데이터 내보내기</h3>
 
             <p>
-              내보내려면 아래에 <b>{projectName}</b> 을(를) 정확히 입력하세요
+              내보내려면 아래에 대상 프로젝트 이름을 정확히 입력하세요
             </p>
 
             <input
               className="input-field"
-              value={exportProjectInput}
-              onChange={(e) => setExportProjectInput(e.target.value)}
-              placeholder={`프로젝트 이름: ${projectName}`}
+              placeholder="프로젝트 이름 입력"
+              value={deleteProjectInput}
+              onChange={(e) => setDeleteProjectInput(e.target.value)}
             />
+
+            {message && (
+              <p className="modal-message">{message}</p>
+            )}
 
             <div className="modal-buttons">
 
