@@ -151,28 +151,34 @@ def analyze_essay_raw(essay: str, prompt_text: str) -> dict:
     prompt = f"""
 {prompt_text}
 
-⚠️`scores`, `rationales`, `keySentences`의 key는 **rubric에서 제시된 평가 항목 이름을 그대로 사용해야 합니다.**
-⚠️`keySentences`는 반드시 학생 글에서 **Exact Match**로 가져와야 합니다.
-⚠️`rationales`는 '~함' 체로 간결하게 작성하십시오.
-⚠️ 반드시 아래 JSON 스키마를 정확히 따르시오.
-⚠️ JSON 외 텍스트가 있으면 오류로 간주됨.
-⚠️ JSON만 출력해야 합니다.
+You are an automated essay grading system.
 
-JSON 형식:
+Return STRICT JSON only.
 
-{{
-  "scores": {{
-    "<criterion_name>": 1~10
-  }},
-  "rationales": {{
+Rules:
+- Output must be valid JSON
+- Do NOT include explanations
+- Do NOT include markdown or ```
+- Use double quotes for all keys
+- The keys in scores, rationales, and keySentences must EXACTLY match the rubric criterion names
+- keySentences must be exact quotes from the student essay
+- rationales must end with "~함"
+
+JSON schema:
+
+{
+  "scores": {
+    "<criterion_name>": integer (1-10)
+  },
+  "rationales": {
     "<criterion_name>": ["근거1","근거2"]
-  }},
-  "keySentences": {{
+  },
+  "keySentences": {
     "<criterion_name>": ["문장1","문장2"]
-  }}
-}}
+  }
+}
 
-학생 글:
+Student Essay:
 ---
 {essay}
 ---
