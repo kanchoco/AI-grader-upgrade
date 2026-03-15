@@ -13,7 +13,7 @@ model = genai.GenerativeModel(
     generation_config={
         "temperature": 0,
         "top_k": 1,
-        "top_p": 0,
+        "top_p": 1,
         "candidate_count": 1,
         "max_output_tokens": 512
     }
@@ -189,7 +189,10 @@ Student Essay:
     )
 
     response = model.generate_content(prompt)
-    raw_text = response.text.strip()
+    raw_text = (response.text or "").strip()
+
+    if not raw_text:
+        raise ValueError("AI 응답 없음")
 
     if raw_text.startswith("```"):
         raw_text = raw_text.replace("```json", "").replace("```", "").strip()
