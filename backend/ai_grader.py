@@ -188,6 +188,22 @@ Student Essay:
 """
     )
 
+    response = model.generate_content(prompt)
+    raw_text = response.text.strip()
+
+    if raw_text.startswith("```"):
+        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+
+    try:
+        parsed = json.loads(raw_text)
+    except Exception:
+        raise ValueError("JSON 파싱 실패")
+
+    if not isinstance(parsed, dict):
+        raise ValueError("JSON 구조 오류")
+
+    return parsed
+
 def run_ai_grading(essay_text: str, prompt_text: str, criteria: list[str], max_retry: int = 3):
 
     last_error = None
