@@ -161,7 +161,19 @@ const GradingRow: React.FC<GradingRowProps> = ({
           rater_uid: raterUid,
           rater_name: raterId,
           project_name: projectName,
-          scores: aiResult.scores
+
+          // 1차 전문가
+          expert_scores: Object.fromEntries(
+            Object.entries(expertScores).map(([k, v]) => [k, Number(v)])
+          ),
+
+          // 2차 AI
+          ai_scores: aiResult.scores,
+
+          // 3차 최종 (사람 수정)
+          final_scores: Object.fromEntries(
+            Object.entries(expertScores).map(([k, v]) => [k, Number(v)])
+          )
         }),
       });
 

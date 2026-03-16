@@ -333,7 +333,7 @@ def ai_grade():
     project_name = data["project_name"]
     student_answer = data["student_answer"]
 
-    criteria_data = data["criteria"]   # [{name:"logic", expert_score:7}...]
+    criteria_data = data["criteria"]
 
     engine = get_engine()
 
@@ -353,55 +353,13 @@ def ai_grade():
         prompt_text = project["prompt_text"] if project else ""
 
         criteria_list = [c["name"] for c in criteria_data]
+
         # AI 채점 실행
         ai_result = run_ai_grading(student_answer, prompt_text, criteria_list)
+
         print("AI RESULT RAW:", ai_result)
+
         score_id = str(uuid.uuid4())
-
-        human_scores = {}
-
-        for c in criteria_data:
-            human_scores[c["name"]] = c["expert_score"]
-
-        ai_scores = ai_result["scores"]
-
-        conn.execute(
-            sqlalchemy.text("""
-                INSERT INTO scoreDB
-                (score_id, student_id, rater_uid, rater_name,
-                 stage, scores, project_id, created_at)
-                VALUES
-                (:score_id, :student_id, :rater_uid, :rater_name,
-                 'human', :scores, :project_id, NOW())
-            """),
-            {
-                "score_id": score_id,
-                "student_id": student_id,
-                "rater_uid": rater_uid,
-                "rater_name": rater_name,
-                "scores": json.dumps(human_scores, ensure_ascii=False),
-                "project_id": project_id
-            }
-        )
-
-        conn.execute(
-            sqlalchemy.text("""
-                INSERT INTO scoreDB
-                (score_id, student_id, rater_uid, rater_name,
-                 stage, scores, project_id, created_at)
-                VALUES
-                (:score_id, :student_id, :rater_uid, :rater_name,
-                 'ai', :scores, :project_id, NOW())
-            """),
-            {
-                "score_id": score_id,
-                "student_id": student_id,
-                "rater_uid": rater_uid,
-                "rater_name": rater_name,
-                "scores": json.dumps(ai_scores, ensure_ascii=False),
-                "project_id": project_id
-            }
-        )
 
         ai_scores = ai_result.get("scores", {})
         ai_rationales = ai_result.get("rationales", {})
@@ -432,13 +390,15 @@ def ai_grade():
         ai_result["key_sentences"] = mapped_keys
 
         MODEL_VERSION = "gemini-2.5-flash"
+
         if not isinstance(ai_scores, dict):
             ai_scores = {}
 
-        for criterion, score in ai_scores.items():
+        # AI 로그 저장
+        for criterion, score in mapped_scores.items():
 
-            rationale_list = ai_rationales.get(criterion, [])
-            key_sentence_list = ai_keys.get(criterion, [])
+            rationale_list = mapped_rationales.get(criterion, [])
+            key_sentence_list = mapped_keys.get(criterion, [])
 
             rationale_text = "\n".join(rationale_list)
             key_sentence_text = "\n".join(key_sentence_list)
@@ -479,8 +439,8 @@ def ai_grade():
                     )
                 """),
                 {
-                    "log_id": str(uuid.uuid4()),        
-                    "score_id": score_id,    
+                    "log_id": str(uuid.uuid4()),
+                    "score_id": score_id,
                     "student_id": student_id,
                     "criterion_name": criterion,
                     "score": score,
@@ -493,14 +453,12 @@ def ai_grade():
                     "rater_name": rater_name
                 }
             )
-    
 
     return {
         "success": True,
         "score_id": score_id,
         "ai_result": ai_result
     }
-
 
 @app.post("/login")
 def login():
@@ -615,6 +573,86 @@ def delete_project(project_name):
         "success": True,
         "message": f"Project {project_name} 데이터 삭제 완료"
     }
+
+@app.post("/add_final_score")
+def add_final_score():
+
+    data = request.json
+
+    score_id = data["score_uid"]
+    student_id = data["student_id"]
+    rater_uid = data["rater_uid"]
+    rater_name = data["rater_name"]
+    project_name = data["project_name"]
+
+    expert_scores = data.get("expert_scores", {})
+    ai_scores = data.get("ai_scores", {})
+    final_scores = data.get("final_scores", {})
+
+    engine = get_engine()
+
+    with engine.begin() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        conn.execute(
+            sqlalchemy.text("""
+                INSERT INTO scoreDB
+                (score_id, student_id, rater_uid, rater_name,
+                 stage, scores, project_id, created_at)
+                VALUES
+                (:score_id, :student_id, :rater_uid, :rater_name,
+                 'human', :scores, :project_id, NOW())
+            """),
+            {
+                "score_id": score_id,
+                "student_id": student_id,
+                "rater_uid": rater_uid,
+                "rater_name": rater_name,
+                "scores": json.dumps(expert_scores, ensure_ascii=False),
+                "project_id": project_id
+            }
+        )
+
+        conn.execute(
+            sqlalchemy.text("""
+                INSERT INTO scoreDB
+                (score_id, student_id, rater_uid, rater_name,
+                 stage, scores, project_id, created_at)
+                VALUES
+                (:score_id, :student_id, :rater_uid, :rater_name,
+                 'ai', :scores, :project_id, NOW())
+            """),
+            {
+                "score_id": score_id,
+                "student_id": student_id,
+                "rater_uid": rater_uid,
+                "rater_name": rater_name,
+                "scores": json.dumps(ai_scores, ensure_ascii=False),
+                "project_id": project_id
+            }
+        )
+
+        conn.execute(
+            sqlalchemy.text("""
+                INSERT INTO scoreDB
+                (score_id, student_id, rater_uid, rater_name,
+                 stage, scores, project_id, created_at)
+                VALUES
+                (:score_id, :student_id, :rater_uid, :rater_name,
+                 'final', :scores, :project_id, NOW())
+            """),
+            {
+                "score_id": score_id,
+                "student_id": student_id,
+                "rater_uid": rater_uid,
+                "rater_name": rater_name,
+                "scores": json.dumps(final_scores, ensure_ascii=False),
+                "project_id": project_id
+            }
+        )
+
+    return {"status": "ok"}
 
 
 # 프런트엔드 서빙
