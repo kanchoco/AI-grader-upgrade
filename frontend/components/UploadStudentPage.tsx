@@ -10,7 +10,9 @@ interface UploadProps {
 const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout }) => {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [uploadMessage, setUploadMessage] = useState("");
+  const [deleteMessage, setDeleteMessage] = useState("");
+  const [exportMessage, setExportMessage] = useState("");
 
   const [projectName, setProjectName] = useState("");
   const [nameColumn, setNameColumn] = useState("");
@@ -95,7 +97,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setFile(e.target.files[0]);
-      setMessage("");
+      setUploadMessage("");
     }
   };
 
@@ -103,22 +105,22 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     const filteredCriteria = criteriaList.filter(c => c.trim() !== "");
 
     if (!projectName.trim()) {
-      setMessage("프로젝트명을 입력해주세요.");
+      setUploadMessage("프로젝트명을 입력해주세요.");
       return;
     }
 
     if (!file) {
-      setMessage("업로드할 엑셀 파일을 선택해주세요.");
+      setUploadMessage("업로드할 엑셀 파일을 선택해주세요.");
       return;
     }
 
     if (!nameColumn.trim() || !answerColumn.trim()) {
-      setMessage("이름 열과 답변 열을 모두 입력해주세요.");
+      setUploadMessage("이름 열과 답변 열을 모두 입력해주세요.");
       return;
     }
 
     if (filteredCriteria.length === 0) {
-      setMessage("판단 항목을 하나 이상 입력해주세요.");
+      setUploadMessage("판단 항목을 하나 이상 입력해주세요.");
       return;
     }
 
@@ -141,12 +143,12 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       const data = await res.json();
 
       if (data.status === "success") {
-        setMessage("업로드 성공!");
+        setUploadMessage("업로드 성공!");
       } else {
-        setMessage(`오류 발생: ${data.message}`);
+        setUploadMessage(`오류 발생: ${data.message}`);
       }
     } catch {
-      setMessage("서버 요청 중 오류가 발생했습니다.");
+      setUploadMessage("서버 요청 중 오류가 발생했습니다.");
     } finally {
       setUploading(false);
     }
@@ -157,7 +159,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     const project = deleteProjectInput.trim();
 
     if (!project) {
-      setMessage("삭제할 프로젝트 이름을 입력하세요.");
+      setDeleteMessage("삭제할 프로젝트 이름을 입력하세요.");
       return;
     }
 
@@ -171,23 +173,23 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       if (!res.ok) {
         const text = await res.text();
         console.error("Delete API error:", text);
-        setMessage("존재하지 않는 프로젝트입니다.");
+        setDeleteMessage("존재하지 않는 프로젝트입니다.");
         return;
       }
 
       const data = await res.json();
 
       if (data.success) {
-        setMessage("프로젝트 데이터가 삭제되었습니다.");
+        setDeleteMessage("프로젝트 데이터가 삭제되었습니다.");
         setDeleteModalOpen(false);
         setDeleteProjectInput("");
       } else {
-        setMessage(data.message || "삭제 실패");
+        setDeleteMessage(data.message || "삭제 실패");
       }
 
     } catch (err) {
       console.error(err);
-      setMessage("삭제 중 서버 오류 발생");
+      setDeleteMessage("삭제 중 서버 오류 발생");
     }
 
   };
@@ -196,7 +198,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     const project = exportProjectInput.trim();
 
     if (!project) {
-      setMessage("내보낼 프로젝트 이름을 입력하세요.");
+      setExportMessage("내보낼 프로젝트 이름을 입력하세요.");
       return;
     }
 
@@ -209,7 +211,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       if (!res.ok) {
         const text = await res.text();
         console.log(text);
-        setMessage("존재하지 않는 프로젝트입니다.");
+        setExportMessage("존재하지 않는 프로젝트입니다.");
         return;
       }
 
@@ -226,7 +228,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       a.remove();
 
     } catch (e) {
-      setMessage("다운로드 오류");
+      setExportMessage("다운로드 오류");
     }
   };
 
@@ -371,8 +373,8 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 {uploading ? "업로드 중..." : "엑셀 업로드"}
               </button>
 
-              {message && (
-                <p style={{ marginTop: "15px" }}>{message}</p>
+              {uploadMessage && (
+                <p style={{ marginTop: "15px" }}>{uploadMessage}</p>
               )}
             </div>
 
@@ -385,7 +387,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                   className="btn btn-danger"
                   onClick={() =>   {
                     setDeleteModalOpen(true);
-                    setMessage("")}}
+                  }}
                 >
                   프로젝트 데이터 지우기
                 </button>
@@ -394,7 +396,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                   className="btn btn-success"
                   onClick={() => {
                     setExportModalOpen(true);
-                    setMessage("")}}
+                  }}
                 >
                   DB 데이터 내보내기 (Excel)
                 </button>
@@ -424,8 +426,8 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
               onChange={(e) => setDeleteProjectInput(e.target.value)}
             />
 
-            {message && (
-              <p className="modal-message">{message}</p>
+            {deleteMessage && (
+              <p className="modal-message">{deleteMessage}</p>
             )}
 
             <div className="modal-buttons">
@@ -441,6 +443,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 className="btn"
                 onClick={() => {setDeleteModalOpen(false);
                 setDeleteProjectInput("");
+                setMessage("");
                 }}
               >
                 취소
@@ -466,12 +469,12 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
             <input
               className="input-field"
               placeholder="프로젝트 이름 입력"
-              value={deleteProjectInput}
-              onChange={(e) => setDeleteProjectInput(e.target.value)}
+              value={exportProjectInput}
+              onChange={(e) => setExportProjectInput(e.target.value)}
             />
 
-            {message && (
-              <p className="modal-message">{message}</p>
+            {exportMessage && (
+              <p className="modal-message">{exportMessage}</p>
             )}
 
             <div className="modal-buttons">
@@ -487,6 +490,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 className="btn"
                 onClick={() => {setExportModalOpen(false);
                 setExportProjectInput("");
+                setMessage("");
                 }}
               >
                 취소
