@@ -227,7 +227,7 @@ def sort_columns(cols):
     return priority
 
 
-@app.post("/export_project_excel/<project_name>")
+@app.get("/export_project_excel/<project_name>")
 def export_project_excel(project_name):
 
     engine = get_engine()
