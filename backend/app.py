@@ -9,6 +9,7 @@ import json
 from ai_grader import run_ai_grading
 from flask import send_file
 import io
+from collections import defaultdict
 
 
 
@@ -150,96 +151,6 @@ def upload_excel():
     except Exception as e:
         return {"status": "error", "message": str(e)}, 500
     
-@app.get("/export_project_excel/<project_name>")
-def export_project_excel(project_name):
-
-    engine = get_engine()
-
-    with engine.connect() as conn:
-
-        project_id = get_project_id(conn, project_name)
-
-        if not project_id:
-            return {"success": False, "message": "project not found"}, 404
-
-        rows = conn.execute(
-            sqlalchemy.text("""
-                SELECT
-                    st.student_name,
-                    s.rater_name,
-                    s.stage,
-                    s.scores,
-                    s.created_at,
-
-                    GROUP_CONCAT(
-                        CONCAT(a.criterion_name, ': ', a.rationale)
-                        SEPARATOR '\n\n'
-                    ) AS ai_rationales
-
-                FROM scoreDB s
-
-                JOIN (
-                    SELECT
-                        student_id,
-                        rater_name,
-                        stage,
-                        project_id,
-                        MAX(created_at) AS max_created
-                    FROM scoreDB
-                    WHERE project_id = :pid
-                    GROUP BY
-                        student_id,
-                        rater_name,
-                        stage,
-                        project_id
-                ) latest
-                ON s.student_id = latest.student_id
-                AND s.rater_name = latest.rater_name
-                AND s.stage = latest.stage
-                AND s.project_id = latest.project_id
-                AND s.created_at = latest.max_created
-
-                LEFT JOIN studentDB st
-                ON s.student_id = st.student_id
-                AND s.project_id = st.project_id
-
-                LEFT JOIN ai_feedback_log a
-                ON s.student_id = a.student_id
-                AND s.project_id = a.project_id
-                AND s.stage = 'ai'
-
-                WHERE s.project_id = :pid
-
-                GROUP BY
-                    st.student_name,
-                    s.rater_name,
-                    s.stage,
-                    s.scores,
-                    s.created_at
-
-                ORDER BY st.student_name
-            """),
-            {"pid": project_id}
-        ).mappings().all()
-
-    if not rows:
-        return {"success": False, "message": "no data"}
-
-    df = pd.DataFrame(rows)
-
-    output = io.BytesIO()
-
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="scores")
-
-    output.seek(0)
-
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name=f"{project_name}_scores.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
 
 def get_project_id(conn, project_name):
     row = conn.execute(
@@ -255,6 +166,149 @@ def get_project_id(conn, project_name):
         return None
 
     return row["project_id"]
+
+def get_feedback_rows(conn, project_id):
+    return conn.execute(
+        sqlalchemy.text("""
+            SELECT student_id, criterion_name, rationale, key_sentence
+            FROM ai_feedback_log
+            WHERE project_id = :project_id
+        """),
+        {"project_id": project_id}
+    ).mappings().all()
+
+def get_score_rows(conn, project_id):
+    return conn.execute(
+        sqlalchemy.text("""
+            SELECT student_id, rater_uid, stage, scores
+            FROM scoreDB
+            WHERE project_id = :project_id
+        """),
+        {"project_id": project_id}
+    ).mappings().all()
+
+def format_text(text):
+    if not text:
+        return ""
+
+    text = text.replace(". ", ".\n")
+
+    text = text.replace("- ", "\n- ")
+
+    return text.strip()
+
+
+@app.post("/export_project_excel/<project_name>")
+def export_project_excel(project_name):
+
+    engine = get_engine()
+
+    with engine.connect() as conn:
+
+        project_id = get_project_id(conn, project_name)
+
+        if not project_id:
+            return {"success": False, "message": "project not found"}, 404
+        
+        score_rows = get_score_rows(conn, project_id)
+
+        merged = defaultdict(dict)
+
+        for row in score_rows:
+            key = (row["student_id"], row["rater_uid"])
+            scores = json.loads(row["scores"])
+
+            for criterion, value in scores.items():
+                merged[key][f"{row['stage']}_{criterion}"] = value
+
+            merged[key]["student_id"] = row["student_id"]
+            merged[key]["rater_uid"] = row["rater_uid"]
+
+        rows = list(merged.values())
+
+        feedback_rows = get_feedback_rows(conn, project_id)
+
+        feedback_map = defaultdict(dict)
+
+        for f in feedback_rows:
+            key = (f["student_id"], f["criterion_name"])
+            feedback_map[key]["rationale"] = f["rationale"]
+            feedback_map[key]["evidence"] = f["key_sentence"]
+
+        for row in rows:
+            student = row["student_id"]
+
+            for key in list(row.keys()):
+                if key.startswith(("rater_", "ai_", "final_")):
+                    _, criterion = key.split("_", 1)
+
+                    fb = feedback_map.get((student, criterion), {})
+
+                    row[f"{criterion}_rationale"] = fb.get("rationale", "")
+                    row[f"{criterion}_evidence"] = fb.get("evidence", "")
+
+        rater_groups = defaultdict(list)
+        for row in rows:
+            rater_groups[row["rater_uid"]].append(row)
+
+        output = io.BytesIO()
+
+        with pd.ExcelWriter(output, engine="openpyxl") as writer:
+
+            for rater, data in rater_groups.items():
+                df = pd.DataFrame(data)
+
+                cols = ["student_id"] + sorted(
+                    [c for c in df.columns if c != "student_id"]
+                )
+                df = df[cols]
+
+                sheet_name = f"rater_{rater}"[:31]
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                ws = writer.sheets[sheet_name]
+
+                for cell in ws[1]:
+                    cell.font = cell.font.copy(bold=True)
+
+                ws.freeze_panes = "A2"
+
+                for col in ws.columns:
+                    col_letter = col[0].column_letter
+                    header = col[0].value
+
+                    width = 15
+
+                    if "rationale" in header:
+                        width = 50
+                    elif "evidence" in header:
+                        width = 60
+                    elif "student" in header:
+                        width = 20
+
+                    ws.column_dimensions[col_letter].width = width
+
+                    for cell in col:
+                        if header and (
+                            "rationale" in header or "evidence" in header
+                        ):
+                            cell.alignment = cell.alignment.copy(
+                                wrapText=True,
+                                vertical="top"
+                            )
+                        else:
+                            cell.alignment = cell.alignment.copy(
+                                horizontal="center",
+                                vertical="center"
+                            )
+        output.seek(0)
+
+        return send_file(
+            output,
+            download_name=f"{project_name}_export.xlsx",
+            as_attachment=True,
+            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
 @app.get("/student/<project_name>/<student_id>")
 def get_student(project_name, student_id):
