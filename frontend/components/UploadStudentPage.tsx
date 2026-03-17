@@ -364,7 +364,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 style={{ marginTop: "20px" }}
               />
 
-              <button
+              <button type="button"
                 className="btn btn-primary"
                 onClick={handleUpload}
                 disabled={uploading}
@@ -432,7 +432,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
             <div className="modal-buttons">
 
-              <button
+              <button type="button"
                 className="btn btn-danger"
                 onClick={handleDeleteProject}
               >
@@ -479,7 +479,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
             <div className="modal-buttons">
 
-              <button
+              <button type="button"
                 className="btn btn-success"
                 onClick={handleExportProject}
               >
