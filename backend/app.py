@@ -248,7 +248,7 @@ def export_project_excel(project_name):
         merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
-            key = (row["student_name"], row["rater_name"])
+            key = row["student_name"]
             scores = json.loads(row["scores"])
 
             for criterion, value in scores.items():
