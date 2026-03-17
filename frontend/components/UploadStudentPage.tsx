@@ -193,8 +193,9 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
   };
 
   const handleExportProject = async () => {
+    const project = exportProjectInput.trim();
 
-    if (!exportProjectInput.trim()) {
+    if (!project) {
       setMessage("내보낼 프로젝트 이름을 입력하세요.");
       return;
     }
@@ -202,7 +203,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
     try {
 
       const res = await fetch(
-        `${apiUrl}/export_project_excel/${exportProjectInput.trim()}`
+        `${apiUrl}/export_project_excel/${project}`
       );
 
       if (!res.ok) {
