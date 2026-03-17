@@ -258,7 +258,7 @@ def export_project_excel(project_name):
         merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
-            key = row["student_id"]
+            key = row["student_name"]
             scores = json.loads(row["scores"])
 
             for criterion, value in scores.items():
@@ -290,12 +290,12 @@ def export_project_excel(project_name):
         feedback_map = defaultdict(dict)
 
         for f in feedback_rows:
-            key = (f["student_id"], f["criterion_name"])
+            key = (f["student_name"], f["criterion_name"])
             feedback_map[key]["rationale"] = format_text(f["rationale"])
             feedback_map[key]["evidence"] = format_text(f["key_sentence"])
 
         for row in rows:
-            student = row["student_id"]
+            student = row["student_name"]
 
             for key in list(row.keys()):
                 if key.endswith("_ai"):
