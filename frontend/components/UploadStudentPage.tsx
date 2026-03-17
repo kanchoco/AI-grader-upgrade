@@ -443,7 +443,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 className="btn"
                 onClick={() => {setDeleteModalOpen(false);
                 setDeleteProjectInput("");
-                setMessage("");
+                setDeleteMessage("");
                 }}
               >
                 취소
@@ -490,7 +490,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                 className="btn"
                 onClick={() => {setExportModalOpen(false);
                 setExportProjectInput("");
-                setMessage("");
+                setExportMessage("");
                 }}
               >
                 취소
