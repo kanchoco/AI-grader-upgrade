@@ -359,8 +359,6 @@ def ai_grade():
 
         print("AI RESULT RAW:", ai_result)
 
-        score_id = str(uuid.uuid4())
-
         ai_scores = ai_result.get("scores", {})
         ai_rationales = ai_result.get("rationales", {})
         ai_keys = ai_result.get("key_sentences", {})
@@ -408,7 +406,6 @@ def ai_grade():
                     INSERT INTO ai_feedback_log
                     (
                         log_id,
-                        score_id,
                         student_id,
                         criterion_name,
                         score,
@@ -424,7 +421,6 @@ def ai_grade():
                     VALUES
                     (
                         :log_id,
-                        :score_id,
                         :student_id,
                         :criterion_name,
                         :score,
@@ -440,7 +436,6 @@ def ai_grade():
                 """),
                 {
                     "log_id": str(uuid.uuid4()),
-                    "score_id": score_id,
                     "student_id": student_id,
                     "criterion_name": criterion,
                     "score": score,
@@ -456,7 +451,6 @@ def ai_grade():
 
     return {
         "success": True,
-        "score_id": score_id,
         "ai_result": ai_result
     }
 
@@ -574,7 +568,7 @@ def add_final_score():
 
     data = request.json
 
-    score_id = data["score_uid"]
+    score_id = str(uuid.uuid4())
     student_id = data["student_id"]
     rater_uid = data["rater_uid"]
     rater_name = data["rater_name"]
