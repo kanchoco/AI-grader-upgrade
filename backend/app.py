@@ -10,6 +10,8 @@ from ai_grader import run_ai_grading
 from flask import send_file
 import io
 from collections import defaultdict
+from openpyxl.styles import Font
+from openpyxl.styles import Alignment
 
 
 
@@ -197,6 +199,33 @@ def format_text(text):
 
     return text.strip()
 
+def sort_columns(cols):
+    priority = []
+
+    # student 먼저
+    if "student_id" in cols:
+        priority.append("student_id")
+
+    criteria = set()
+    for c in cols:
+        if "_" in c:
+            parts = c.split("_", 1)
+            if parts[0] in ("rater", "ai", "final"):
+                criteria.add(parts[1])
+
+    for crit in sorted(criteria):
+        for stage in ["rater", "ai", "final"]:
+            key = f"{stage}_{crit}"
+            if key in cols:
+                priority.append(key)
+
+        if f"{crit}_rationale" in cols:
+            priority.append(f"{crit}_rationale")
+        if f"{crit}_evidence" in cols:
+            priority.append(f"{crit}_evidence")
+
+    return priority
+
 
 @app.post("/export_project_excel/<project_name>")
 def export_project_excel(project_name):
@@ -232,14 +261,14 @@ def export_project_excel(project_name):
 
         for f in feedback_rows:
             key = (f["student_id"], f["criterion_name"])
-            feedback_map[key]["rationale"] = f["rationale"]
-            feedback_map[key]["evidence"] = f["key_sentence"]
+            feedback_map[key]["rationale"] = format_text(f["rationale"])
+            feedback_map[key]["evidence"] = format_text(f["key_sentence"])
 
         for row in rows:
             student = row["student_id"]
 
             for key in list(row.keys()):
-                if key.startswith(("rater_", "ai_", "final_")):
+                if key.startswith(("ai_")):
                     _, criterion = key.split("_", 1)
 
                     fb = feedback_map.get((student, criterion), {})
@@ -258,9 +287,7 @@ def export_project_excel(project_name):
             for rater, data in rater_groups.items():
                 df = pd.DataFrame(data)
 
-                cols = ["student_id"] + sorted(
-                    [c for c in df.columns if c != "student_id"]
-                )
+                cols = sort_columns(df.columns)
                 df = df[cols]
 
                 sheet_name = f"rater_{rater}"[:31]
@@ -269,7 +296,7 @@ def export_project_excel(project_name):
                 ws = writer.sheets[sheet_name]
 
                 for cell in ws[1]:
-                    cell.font = cell.font.copy(bold=True)
+                    cell.font = Font(bold=True)
 
                 ws.freeze_panes = "A2"
 
@@ -292,12 +319,12 @@ def export_project_excel(project_name):
                         if header and (
                             "rationale" in header or "evidence" in header
                         ):
-                            cell.alignment = cell.alignment.copy(
+                            cell.alignment = Alignment(
                                 wrapText=True,
                                 vertical="top"
                             )
                         else:
-                            cell.alignment = cell.alignment.copy(
+                            cell.alignment = Alignment(
                                 horizontal="center",
                                 vertical="center"
                             )
