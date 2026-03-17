@@ -172,9 +172,15 @@ def get_project_id(conn, project_name):
 def get_feedback_rows(conn, project_id):
     return conn.execute(
         sqlalchemy.text("""
-            SELECT student_id, criterion_name, rationale, key_sentence
-            FROM ai_feedback_log
-            WHERE project_id = :project_id
+            SELECT 
+                s.student_name,
+                f.criterion_name,
+                f.rationale,
+                f.key_sentence
+            FROM ai_feedback_log f
+            JOIN studentDB s 
+                ON f.student_id = s.student_id
+            WHERE f.project_id = :project_id
         """),
         {"project_id": project_id}
     ).mappings().all()
@@ -182,9 +188,17 @@ def get_feedback_rows(conn, project_id):
 def get_score_rows(conn, project_id):
     return conn.execute(
         sqlalchemy.text("""
-            SELECT student_id, rater_uid, stage, scores
-            FROM scoreDB
-            WHERE project_id = :project_id
+            SELECT 
+                s.student_name,
+                r.rater_name,
+                sc.stage,
+                sc.scores
+            FROM scoreDB sc
+            JOIN studentDB s 
+                ON sc.student_id = s.student_id
+            JOIN raterDB r 
+                ON sc.rater_uid = r.rater_uid
+            WHERE sc.project_id = :project_id
         """),
         {"project_id": project_id}
     ).mappings().all()
@@ -200,31 +214,21 @@ def format_text(text):
     return text.strip()
 
 def sort_columns(cols):
-    priority = []
-
-    # student 먼저
-    if "student_id" in cols:
-        priority.append("student_id")
+    ordered = ["student_name", "rater_name"]
 
     criteria = set()
     for c in cols:
         if "_" in c:
-            parts = c.split("_", 1)
-            if parts[0] in ("rater", "ai", "final"):
-                criteria.add(parts[1])
+            crit = c.split("_")[0]
+            criteria.add(crit)
 
     for crit in sorted(criteria):
-        for stage in ["rater", "ai", "final"]:
-            key = f"{stage}_{crit}"
-            if key in cols:
-                priority.append(key)
+        for part in ["rater", "ai", "final", "rationale", "evidence"]:
+            col = f"{crit}_{part}"
+            if col in cols:
+                ordered.append(col)
 
-        if f"{crit}_rationale" in cols:
-            priority.append(f"{crit}_rationale")
-        if f"{crit}_evidence" in cols:
-            priority.append(f"{crit}_evidence")
-
-    return priority
+    return ordered
 
 
 @app.get("/export_project_excel/<project_name>")
@@ -241,34 +245,50 @@ def export_project_excel(project_name):
         
         score_rows = get_score_rows(conn, project_id)
 
-        merged = defaultdict(dict)
+        merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
-            key = (row["student_id"], row["rater_uid"])
+            key = (row["student_name"], row["rater_name"])
             scores = json.loads(row["scores"])
 
             for criterion, value in scores.items():
-                merged[key][f"{row['stage']}_{criterion}"] = value
+                 merged[key][criterion][row["stage"]] = value
 
-            merged[key]["student_id"] = row["student_id"]
-            merged[key]["rater_uid"] = row["rater_uid"]
+            merged[key]["student_name"] = row["student_name"]
+            merged[key]["rater_name"] = row["rater_name"]
 
-        rows = list(merged.values())
+        rows = []
+
+        for key, data in merged.items():
+            base = {
+                "student_name": data["student_name"],
+                "rater_name": data["rater_name"]
+            }
+
+            for criterion, stages in data.items():
+                if criterion in ["student_name", "rater_name"]:
+                    continue
+
+                base[f"{criterion}_rater"] = stages.get("rater", "")
+                base[f"{criterion}_ai"] = stages.get("ai", "")
+                base[f"{criterion}_final"] = stages.get("final", "")
+
+            rows.append(base)
 
         feedback_rows = get_feedback_rows(conn, project_id)
 
         feedback_map = defaultdict(dict)
 
         for f in feedback_rows:
-            key = (f["student_id"], f["criterion_name"])
+            key = (f["student_name"], f["criterion_name"])
             feedback_map[key]["rationale"] = format_text(f["rationale"])
             feedback_map[key]["evidence"] = format_text(f["key_sentence"])
 
         for row in rows:
-            student = row["student_id"]
+            student = row["student_name"]
 
             for key in list(row.keys()):
-                if key.startswith(("ai_")):
+                if key.endswith(("_ai")):
                     _, criterion = key.split("_", 1)
 
                     fb = feedback_map.get((student, criterion), {})
@@ -278,7 +298,7 @@ def export_project_excel(project_name):
 
         rater_groups = defaultdict(list)
         for row in rows:
-            rater_groups[row["rater_uid"]].append(row)
+            rater_groups[row["rater_name"]].append(row)
 
         output = io.BytesIO()
 
