@@ -214,19 +214,29 @@ def format_text(text):
     return text.strip()
 
 def sort_columns(cols):
-    ordered = ["student_name", "rater_name"]
+    ordered = []
+
+    if "student_name" in cols:
+        ordered.append("student_name")
+    if "rater_name" in cols:
+        ordered.append("rater_name")
 
     criteria = set()
     for c in cols:
         if "_" in c:
-            crit = c.split("_")[0]
+            crit = c.rsplit("_", 1)[0]
             criteria.add(crit)
 
     for crit in sorted(criteria):
-        for part in ["rater", "ai", "final", "rationale", "evidence"]:
-            col = f"{crit}_{part}"
+        for stage in ["human", "ai", "final"]:
+            col = f"{crit}_{stage}"
             if col in cols:
                 ordered.append(col)
+
+        if f"{crit}_rationale" in cols:
+            ordered.append(f"{crit}_rationale")
+        if f"{crit}_evidence" in cols:
+            ordered.append(f"{crit}_evidence")
 
     return ordered
 
@@ -248,7 +258,7 @@ def export_project_excel(project_name):
         merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
-            key = row["student_name"]
+            key = row["student_id"]
             scores = json.loads(row["scores"])
 
             for criterion, value in scores.items():
@@ -269,7 +279,7 @@ def export_project_excel(project_name):
                 if criterion in ["student_name", "rater_name"]:
                     continue
 
-                base[f"{criterion}_rater"] = stages.get("rater", "")
+                base[f"{criterion}_human"] = stages.get("human", "")
                 base[f"{criterion}_ai"] = stages.get("ai", "")
                 base[f"{criterion}_final"] = stages.get("final", "")
 
@@ -280,16 +290,16 @@ def export_project_excel(project_name):
         feedback_map = defaultdict(dict)
 
         for f in feedback_rows:
-            key = (f["student_name"], f["criterion_name"])
+            key = (f["student_id"], f["criterion_name"])
             feedback_map[key]["rationale"] = format_text(f["rationale"])
             feedback_map[key]["evidence"] = format_text(f["key_sentence"])
 
         for row in rows:
-            student = row["student_name"]
+            student = row["student_id"]
 
             for key in list(row.keys()):
-                if key.endswith(("_ai")):
-                    _, criterion = key.split("_", 1)
+                if key.endswith("_ai"):
+                    criterion = key.rsplit("_", 1)[0]
 
                     fb = feedback_map.get((student, criterion), {})
 
