@@ -560,11 +560,6 @@ def delete_project(project_name):
 
 
         conn.execute(
-            sqlalchemy.text("DELETE FROM scoreDB WHERE project_id = :pid"),
-            {"pid": project_id}
-        )
-
-        conn.execute(
             sqlalchemy.text("DELETE FROM studentDB WHERE project_id = :pid"),
             {"pid": project_id}
         )
