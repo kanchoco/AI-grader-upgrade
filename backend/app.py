@@ -669,11 +669,6 @@ def delete_project(project_name):
         """), {"pid": project_id})
 
         conn.execute(sqlalchemy.text("""
-        DELETE FROM ai_feedback_log
-        WHERE project_id = :pid
-        """), {"pid": project_id})
-
-        conn.execute(sqlalchemy.text("""
         DELETE FROM studentDB
         WHERE project_id = :pid
         """), {"pid": project_id})
