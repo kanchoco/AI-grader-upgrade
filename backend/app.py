@@ -354,17 +354,12 @@ def export_project_excel(project_name):
 
                 df.columns = pd.MultiIndex.from_tuples(df.columns)
 
-                def sort_multi_columns(cols):
-                    priority = ["human", "ai", "final", "rationale", "keysentence"]
-                    return sorted(
-                        cols,
-                        key=lambda x: (x[0], priority.index(x[1]) if x[1] in priority else -1)
-                    )
+                columns = list(df.columns)
 
-                df = df[sort_multi_columns(df.columns)]
+                header_top = [col[0] for col in columns]
+                header_bottom = [col[1] for col in columns]
 
-                header_top = [col[0] for col in df.columns]
-                header_bottom = [col[1] for col in df.columns]
+                df.columns = [f"{col[0]}__{col[1]}" for col in columns]
 
                 sheet_name = f"rater_{rater}"[:31]
 
