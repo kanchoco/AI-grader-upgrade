@@ -309,33 +309,14 @@ def export_project_excel(project_name):
             feedback_map[key]["rationale"] = format_text(f["rationale"])
             feedback_map[key]["keysentence"] = format_text(f["key_sentence"])
 
-        for row in rows:
-            student = row["student_name"]
+        feedback_dict = defaultdict(dict)
 
-            for key in list(row.keys()):
-                if key.endswith("_ai"):
-                    criterion = key.rsplit("_", 1)[0]
+        for (student, criterion), fb in feedback_map.items():
+            feedback_dict[student]["student_name"] = student
+            feedback_dict[student][f"{criterion}_rationale"] = fb.get("rationale", "")
+            feedback_dict[student][f"{criterion}_keysentence"] = fb.get("keysentence", "")
 
-                    fb = feedback_map.get((student, criterion), {})
-
-                    row[f"{criterion}_rationale"] = fb.get("rationale", "")
-                    row[f"{criterion}_keysentence"] = fb.get("keysentence", "")
-
-        feedback_rows_local = []
-
-        for row in data:
-            student = row["student_name"]
-            new_row = {"student_name": student}
-
-            for key in row.keys():
-                if key.endswith("_rationale") or key.endswith("_keysentence"):
-                    new_row[key] = row[key]
-
-            feedback_rows_local.append(new_row)
-
-        df_feedback = pd.DataFrame(feedback_rows_local)
-
-        df_feedback = pd.DataFrame(feedback_rows)
+        df_feedback_all = pd.DataFrame(feedback_dict.values())
 
         rater_groups = defaultdict(list)
         for row in rows:
@@ -371,18 +352,9 @@ def export_project_excel(project_name):
                             c = key.replace("_final", "")
                             new_row[(c, "final")] = value
 
-                        elif key.endswith("_rationale"):
-                            c = key.replace("_rationale", "")
-                            new_row[(c, "rationale")] = value
-
-                        elif key.endswith("_keysentence"):
-                            c = key.replace("_keysentence", "")
-                            new_row[(c, "keysentence")] = value
-
                     multi_rows.append(new_row)
 
                 df_score = pd.DataFrame(multi_rows)
-                df_feedback = pd.DataFrame(feedback_rows)
 
                 df_score.columns = pd.MultiIndex.from_tuples(df_score.columns)
 
@@ -393,10 +365,17 @@ def export_project_excel(project_name):
 
                 df_score.columns = [f"{col[0]}__{col[1]}" for col in columns]
 
+                students = [row["student_name"] for row in data]
+
+                df_feedback = df_feedback_all[
+                    df_feedback_all["student_name"].isin(students)
+                ].copy()
+
+                if not df_feedback.empty:
+                    df_feedback = df_feedback[sort_feedback_columns(df_feedback.columns)]
+
                 sheet_name = f"rater_{rater}"[:31]
                 
-                df_feedback = df_feedback[sort_feedback_columns(df_feedback.columns)]
-
                 df_score.to_excel(
                     writer,
                     sheet_name=sheet_name,
@@ -420,10 +399,10 @@ def export_project_excel(project_name):
                     ws.cell(row=1, column=col_idx, value=top)
                     ws.cell(row=2, column=col_idx, value=bottom)
 
-                for col_idx in range(start_col_feedback + 1, start_col_feedback + df_feedback.shape[1] + 1):
-                    for r in [1, 2]:
-                        ws.cell(row=r, column=col_idx).font = Font(bold=True)
-
+                for col_idx, col_name in enumerate(df_feedback.columns, start=start_col_feedback + 1):
+                    ws.cell(row=2, column=col_idx, value=col_name)
+                    ws.cell(row=1, column=col_idx, value="AI Feedback")
+                    
                 current_top = None
                 start_col = None
 
