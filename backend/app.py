@@ -255,6 +255,9 @@ def export_project_excel(project_name):
         
         score_rows = get_score_rows(conn, project_id)
 
+        # -------------------------
+        # 1. score merge
+        # -------------------------
         merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
@@ -262,7 +265,7 @@ def export_project_excel(project_name):
             scores = json.loads(row["scores"])
 
             for criterion, value in scores.items():
-                 merged[key][criterion][row["stage"]] = value
+                merged[key][criterion][row["stage"]] = value
 
             merged[key]["student_name"] = row["student_name"]
             merged[key]["rater_name"] = row["rater_name"]
@@ -285,6 +288,9 @@ def export_project_excel(project_name):
 
             rows.append(base)
 
+        # -------------------------
+        # 2. feedback merge
+        # -------------------------
         feedback_rows = get_feedback_rows(conn, project_id)
 
         feedback_map = defaultdict(dict)
@@ -292,7 +298,7 @@ def export_project_excel(project_name):
         for f in feedback_rows:
             key = (f["student_name"], f["criterion_name"])
             feedback_map[key]["rationale"] = format_text(f["rationale"])
-            feedback_map[key]["evidence"] = format_text(f["key_sentence"])
+            feedback_map[key]["keysentence"] = format_text(f["key_sentence"])
 
         for row in rows:
             student = row["student_name"]
@@ -304,8 +310,11 @@ def export_project_excel(project_name):
                     fb = feedback_map.get((student, criterion), {})
 
                     row[f"{criterion}_rationale"] = fb.get("rationale", "")
-                    row[f"{criterion}_evidence"] = fb.get("evidence", "")
+                    row[f"{criterion}_keysentence"] = fb.get("keysentence", "")
 
+        # -------------------------
+        # 3. rater별 분리
+        # -------------------------
         rater_groups = defaultdict(list)
         for row in rows:
             rater_groups[row["rater_name"]].append(row)
@@ -315,39 +324,96 @@ def export_project_excel(project_name):
         with pd.ExcelWriter(output, engine="openpyxl") as writer:
 
             for rater, data in rater_groups.items():
-                df = pd.DataFrame(data)
 
-                cols = sort_columns(df.columns)
-                df = df[cols]
+                # -------------------------
+                # 4. MultiIndex 변환
+                # -------------------------
+                multi_rows = []
 
+                for row in data:
+                    new_row = {}
+
+                    # 학생 컬럼
+                    new_row[("학생", "")] = row["student_name"]
+
+                    for key, value in row.items():
+
+                        if key in ["student_name", "rater_name"]:
+                            continue
+
+                        if key.endswith("_human"):
+                            c = key.replace("_human", "")
+                            new_row[(c, "human")] = value
+
+                        elif key.endswith("_ai"):
+                            c = key.replace("_ai", "")
+                            new_row[(c, "ai")] = value
+
+                        elif key.endswith("_final"):
+                            c = key.replace("_final", "")
+                            new_row[(c, "final")] = value
+
+                        elif key.endswith("_rationale"):
+                            c = key.replace("_rationale", "")
+                            new_row[(c, "rationale")] = value
+
+                        elif key.endswith("_keysentence"):
+                            c = key.replace("_keysentence", "")
+                            new_row[(c, "keysentence")] = value
+
+                    multi_rows.append(new_row)
+
+                df = pd.DataFrame(multi_rows)
+
+                # -------------------------
+                # 5. MultiIndex 컬럼 적용
+                # -------------------------
+                df.columns = pd.MultiIndex.from_tuples(df.columns)
+
+                # 컬럼 정렬
+                def sort_multi_columns(cols):
+                    priority = ["human", "ai", "final", "rationale", "keysentence"]
+                    return sorted(
+                        cols,
+                        key=lambda x: (x[0], priority.index(x[1]) if x[1] in priority else -1)
+                    )
+
+                df = df[sort_multi_columns(df.columns)]
+
+                # -------------------------
+                # 6. 엑셀 저장
+                # -------------------------
                 sheet_name = f"rater_{rater}"[:31]
                 df.to_excel(writer, sheet_name=sheet_name, index=False)
 
                 ws = writer.sheets[sheet_name]
 
-                for cell in ws[1]:
-                    cell.font = Font(bold=True)
+                # 헤더 bold
+                for row_cells in ws.iter_rows(min_row=1, max_row=2):
+                    for cell in row_cells:
+                        cell.font = Font(bold=True)
 
-                ws.freeze_panes = "A2"
+                ws.freeze_panes = "A3"
 
+                # 열 스타일
                 for col in ws.columns:
                     col_letter = col[0].column_letter
                     header = col[0].value
 
                     width = 15
 
-                    if "rationale" in header:
+                    if header and "rationale" in str(header):
                         width = 50
-                    elif "evidence" in header:
+                    elif header and "keysentence" in str(header):
                         width = 60
-                    elif "student" in header:
+                    elif header == "학생":
                         width = 20
 
                     ws.column_dimensions[col_letter].width = width
 
                     for cell in col:
                         if header and (
-                            "rationale" in header or "evidence" in header
+                            "rationale" in str(header) or "keysentence" in str(header)
                         ):
                             cell.alignment = Alignment(
                                 wrapText=True,
@@ -358,6 +424,7 @@ def export_project_excel(project_name):
                                 horizontal="center",
                                 vertical="center"
                             )
+
         output.seek(0)
 
         return send_file(
