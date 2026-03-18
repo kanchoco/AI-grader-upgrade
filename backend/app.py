@@ -241,6 +241,20 @@ def sort_columns(cols):
 
     return ordered
 
+def sort_feedback_columns(cols):
+    ordered = ["student_name"]
+
+    criteria = sorted(
+        set(c.split("_")[0] for c in cols if "_" in c)
+    )
+
+    for c in criteria:
+        ordered.append(f"{c}_rationale")
+        ordered.append(f"{c}_keysentence")
+
+    return [c for c in ordered if c in cols]
+
+
 
 @app.get("/export_project_excel/<project_name>")
 def export_project_excel(project_name):
@@ -307,6 +321,22 @@ def export_project_excel(project_name):
                     row[f"{criterion}_rationale"] = fb.get("rationale", "")
                     row[f"{criterion}_keysentence"] = fb.get("keysentence", "")
 
+        feedback_rows_local = []
+
+        for row in data:
+            student = row["student_name"]
+            new_row = {"student_name": student}
+
+            for key in row.keys():
+                if key.endswith("_rationale") or key.endswith("_keysentence"):
+                    new_row[key] = row[key]
+
+            feedback_rows_local.append(new_row)
+
+        df_feedback = pd.DataFrame(feedback_rows_local)
+
+        df_feedback = pd.DataFrame(feedback_rows)
+
         rater_groups = defaultdict(list)
         for row in rows:
             rater_groups[row["rater_name"]].append(row)
@@ -351,20 +381,38 @@ def export_project_excel(project_name):
 
                     multi_rows.append(new_row)
 
-                df = pd.DataFrame(multi_rows)
+                df_score = pd.DataFrame(multi_rows)
+                df_feedback = pd.DataFrame(feedback_rows)
 
-                df.columns = pd.MultiIndex.from_tuples(df.columns)
+                df_score.columns = pd.MultiIndex.from_tuples(df_score.columns)
 
-                columns = list(df.columns)
+                columns = list(df_score.columns)
 
                 header_top = [col[0] for col in columns]
                 header_bottom = [col[1] for col in columns]
 
-                df.columns = [f"{col[0]}__{col[1]}" for col in columns]
+                df_score.columns = [f"{col[0]}__{col[1]}" for col in columns]
 
                 sheet_name = f"rater_{rater}"[:31]
+                
+                df_feedback = df_feedback[sort_feedback_columns(df_feedback.columns)]
 
-                df.to_excel(writer, sheet_name=sheet_name, index=False, header=False, startrow=2)
+                df_score.to_excel(
+                    writer,
+                    sheet_name=sheet_name,
+                    index=False,
+                    header=False,
+                    startrow=2,
+                    startcol=0
+                )
+                start_col_feedback = df_score.shape[1] + 2
+                df_feedback.to_excel(
+                    writer,
+                    sheet_name=sheet_name,
+                    index=False,
+                    startrow=2,
+                    startcol=start_col_feedback
+                )
 
                 ws = writer.sheets[sheet_name]
 
@@ -372,18 +420,35 @@ def export_project_excel(project_name):
                     ws.cell(row=1, column=col_idx, value=top)
                     ws.cell(row=2, column=col_idx, value=bottom)
 
-                merge_map = defaultdict(list)
+                for col_idx in range(start_col_feedback + 1, start_col_feedback + df_feedback.shape[1] + 1):
+                    for r in [1, 2]:
+                        ws.cell(row=r, column=col_idx).font = Font(bold=True)
 
-                for i, top in enumerate(header_top):
-                    merge_map[top].append(i + 1)
+                current_top = None
+                start_col = None
 
-                for top, cols in merge_map.items():
-                    if len(cols) > 1:
+                for col_idx, top in enumerate(header_top, start=1):
+
+                    if top != current_top:
+                        if current_top is not None and start_col is not None:
+                            if col_idx - start_col > 1:
+                                ws.merge_cells(
+                                    start_row=1,
+                                    start_column=start_col,
+                                    end_row=1,
+                                    end_column=col_idx - 1
+                                )
+                        current_top = top
+                        start_col = col_idx
+
+                # 마지막 merge
+                if current_top is not None and start_col is not None:
+                    if len(header_top) - start_col + 1 > 1:
                         ws.merge_cells(
                             start_row=1,
-                            start_column=cols[0],
+                            start_column=start_col,
                             end_row=1,
-                            end_column=cols[-1]
+                            end_column=len(header_top)
                         )
 
                 for row in ws.iter_rows(min_row=1, max_row=2):
