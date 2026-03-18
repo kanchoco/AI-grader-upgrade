@@ -376,8 +376,6 @@ def export_project_excel(project_name):
                     ws.cell(row=1, column=col_idx, value=top)
                     ws.cell(row=2, column=col_idx, value=bottom)
 
-                from collections import defaultdict
-
                 merge_map = defaultdict(list)
 
                 for i, top in enumerate(header_top):
