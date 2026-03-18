@@ -663,11 +663,25 @@ def delete_project(project_name):
         if not project_id:
             return {"success": False, "message": "project not found"}, 404
 
+        conn.execute("""
+        DELETE FROM scoreDB
+        WHERE project_id = :pid
+        """, {"pid": project_id})
 
-        conn.execute(
-            sqlalchemy.text("DELETE FROM studentDB WHERE project_id = :pid"),
-            {"pid": project_id}
-        )
+        conn.execute("""
+        DELETE FROM ai_feedback_log
+        WHERE project_id = :pid
+        """, {"pid": project_id})
+
+        conn.execute("""
+        DELETE FROM studentDB
+        WHERE project_id = :pid
+        """, {"pid": project_id})
+
+        conn.execute("""
+        DELETE FROM projectDB
+        WHERE project_id = :pid
+        """, {"pid": project_id})
 
     return {
         "success": True,
