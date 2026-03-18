@@ -255,9 +255,6 @@ def export_project_excel(project_name):
         
         score_rows = get_score_rows(conn, project_id)
 
-        # -------------------------
-        # 1. score merge
-        # -------------------------
         merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
@@ -288,9 +285,6 @@ def export_project_excel(project_name):
 
             rows.append(base)
 
-        # -------------------------
-        # 2. feedback merge
-        # -------------------------
         feedback_rows = get_feedback_rows(conn, project_id)
 
         feedback_map = defaultdict(dict)
@@ -312,9 +306,6 @@ def export_project_excel(project_name):
                     row[f"{criterion}_rationale"] = fb.get("rationale", "")
                     row[f"{criterion}_keysentence"] = fb.get("keysentence", "")
 
-        # -------------------------
-        # 3. rater별 분리
-        # -------------------------
         rater_groups = defaultdict(list)
         for row in rows:
             rater_groups[row["rater_name"]].append(row)
@@ -325,15 +316,11 @@ def export_project_excel(project_name):
 
             for rater, data in rater_groups.items():
 
-                # -------------------------
-                # 4. MultiIndex 변환
-                # -------------------------
                 multi_rows = []
 
                 for row in data:
                     new_row = {}
 
-                    # 학생 컬럼
                     new_row[("학생", "")] = row["student_name"]
 
                     for key, value in row.items():
@@ -365,12 +352,8 @@ def export_project_excel(project_name):
 
                 df = pd.DataFrame(multi_rows)
 
-                # -------------------------
-                # 5. MultiIndex 컬럼 적용
-                # -------------------------
                 df.columns = pd.MultiIndex.from_tuples(df.columns)
 
-                # 컬럼 정렬
                 def sort_multi_columns(cols):
                     priority = ["human", "ai", "final", "rationale", "keysentence"]
                     return sorted(
@@ -380,22 +363,42 @@ def export_project_excel(project_name):
 
                 df = df[sort_multi_columns(df.columns)]
 
-                # -------------------------
-                # 6. 엑셀 저장
-                # -------------------------
+                header_top = [col[0] for col in df.columns]
+                header_bottom = [col[1] for col in df.columns]
+
                 sheet_name = f"rater_{rater}"[:31]
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+                df.to_excel(writer, sheet_name=sheet_name, index=False, header=False, startrow=2)
 
                 ws = writer.sheets[sheet_name]
 
-                # 헤더 bold
-                for row_cells in ws.iter_rows(min_row=1, max_row=2):
-                    for cell in row_cells:
+                for col_idx, (top, bottom) in enumerate(zip(header_top, header_bottom), start=1):
+                    ws.cell(row=1, column=col_idx, value=top)
+                    ws.cell(row=2, column=col_idx, value=bottom)
+
+                from collections import defaultdict
+
+                merge_map = defaultdict(list)
+
+                for i, top in enumerate(header_top):
+                    merge_map[top].append(i + 1)
+
+                for top, cols in merge_map.items():
+                    if len(cols) > 1:
+                        ws.merge_cells(
+                            start_row=1,
+                            start_column=cols[0],
+                            end_row=1,
+                            end_column=cols[-1]
+                        )
+
+                for row in ws.iter_rows(min_row=1, max_row=2):
+                    for cell in row:
                         cell.font = Font(bold=True)
+                        cell.alignment = Alignment(horizontal="center", vertical="center")
 
                 ws.freeze_panes = "A3"
 
-                # 열 스타일
                 for col in ws.columns:
                     col_letter = col[0].column_letter
                     header = col[0].value
