@@ -12,6 +12,7 @@ import io
 from collections import defaultdict
 from openpyxl.styles import Font
 from openpyxl.styles import Alignment
+from openpyxl.utils import get_column_letter
 
 
 
@@ -392,9 +393,9 @@ def export_project_excel(project_name):
 
                 ws.freeze_panes = "A3"
 
-                for col in ws.columns:
-                    col_letter = col[0].column_letter
-                    header = col[0].value
+                for col_idx, col in enumerate(ws.columns, start=1):
+                    col_letter = get_column_letter(col_idx)
+                    header = ws.cell(row=1, column=col_idx).value
 
                     width = 15
 
