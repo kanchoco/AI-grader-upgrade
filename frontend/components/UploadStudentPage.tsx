@@ -189,8 +189,13 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
       if (data.success) {
         setDeleteMessage("프로젝트 데이터가 삭제되었습니다.");
-        setDeleteModalOpen(false);
-        setDeleteProjectInput("");
+
+        setTimeout(() => {
+          setDeleteModalOpen(false);
+          setDeleteProjectInput("");
+          setDeleteMessage(""); 
+        }, 1200); 
+
       } else {
         setDeleteMessage(data.message || "삭제 실패");
       }
@@ -420,42 +425,48 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
       {/* 삭제 modal */}
       {deleteModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-box">
+          <div className="modal-box danger">
 
-            <h3>프로젝트 삭제</h3>
+            <h2 className="modal-title">프로젝트 삭제</h2>
 
-            <p>
-              삭제하려면 아래에 대상 프로젝트 이름을 정확히 입력하세요
+            <p className="modal-desc warning-text">
+              이 작업은 되돌릴 수 없습니다.  
+              삭제하려면 프로젝트 이름을 정확히 입력하세요.
             </p>
 
-            <input
-              className="input-field"
-              placeholder="프로젝트 이름 입력"
-              value={deleteProjectInput}
-              onChange={(e) => setDeleteProjectInput(e.target.value)}
-            />
+            <div className="modal-input-group">
+              <label className="modal-label">프로젝트 이름</label>
+              <input
+                className="input-field"
+                placeholder="예: 2026_final"
+                value={deleteProjectInput}
+                onChange={(e) => setDeleteProjectInput(e.target.value)}
+              />
+            </div>
 
             {deleteMessage && (
-              <p className="modal-message">{deleteMessage}</p>
+              <p className="modal-message success-text">{deleteMessage}</p>
             )}
 
-            <div className="modal-buttons">
+            <div className="modal-footer">
 
-              <button type="button"
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setDeleteModalOpen(false);
+                  setDeleteProjectInput("");
+                  setDeleteMessage("");
+                }}
+              >
+                취소
+              </button>
+
+              <button
+                type="button"
                 className="btn btn-danger"
                 onClick={handleDeleteProject}
               >
                 삭제
-              </button>
-
-              <button
-                className="btn"
-                onClick={() => {setDeleteModalOpen(false);
-                setDeleteProjectInput("");
-                setDeleteMessage("");
-                }}
-              >
-                취소
               </button>
 
             </div>
@@ -469,40 +480,44 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
         <div className="modal-overlay">
           <div className="modal-box">
 
-            <h3>데이터 내보내기</h3>
+            <h2 className="modal-title">데이터 내보내기</h2>
 
-            <p>
+            <p className="modal-desc">
               내보내려면 아래에 대상 프로젝트 이름을 정확히 입력하세요
             </p>
 
-            <input
-              className="input-field"
-              placeholder="프로젝트 이름 입력"
-              value={exportProjectInput}
-              onChange={(e) => setExportProjectInput(e.target.value)}
-            />
-
+            <div className="modal-input-group">
+              <label className="modal-label">프로젝트 이름</label>
+              <input
+                className="input-field"
+                placeholder="프로젝트 이름 입력"
+                value={exportProjectInput}
+                onChange={(e) => setExportProjectInput(e.target.value)}
+              />
+            </div>
+      
             {exportMessage && (
               <p className="modal-message">{exportMessage}</p>
             )}
 
-            <div className="modal-buttons">
-
-              <button type="button"
-                className="btn btn-success"
-                onClick={handleExportProject}
-              >
-                내보내기
-              </button>
+            <div className="modal-footer">
 
               <button
-                className="btn"
-                onClick={() => {setExportModalOpen(false);
-                setExportProjectInput("");
-                setExportMessage("");
+                className="btn btn-secondary"
+                onClick={() => {
+                  setExportModalOpen(false);
+                  setExportProjectInput("");
+                  setExportMessage("");
                 }}
               >
                 취소
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={handleExportProject}
+              >
+                내보내기
               </button>
 
             </div>
