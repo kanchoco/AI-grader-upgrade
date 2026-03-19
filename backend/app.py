@@ -182,7 +182,7 @@ def get_feedback_rows(conn, project_id):
             JOIN studentDB s 
                 ON f.student_id = s.student_id
             WHERE f.project_id = :project_id
-            ORDERE BY s.student_name ASC
+            ORDER BY s.student_name ASC
         """),
         {"project_id": project_id}
     ).mappings().all()
@@ -201,7 +201,7 @@ def get_score_rows(conn, project_id):
             JOIN raterDB r 
                 ON sc.rater_uid = r.rater_uid
             WHERE sc.project_id = :project_id
-            ORDERE BY s.student_name ASC
+            ORDER BY s.student_name ASC
         """),
         {"project_id": project_id}
     ).mappings().all()
