@@ -90,17 +90,29 @@ const GradingRow: React.FC<GradingRowProps> = ({
   // AI 채점 실행
   const handleAiGrade = async () => {
     // 모든 항목이 입력되었는지 검사
-    for (const c of criteria) {
-      if (!expertScores[c]) {
-        alert(`[Student #${student.student_id}] 모든 판단 항목의 점수를 입력하세요.`);
-        return;
-      }
-      const val = Number(expertScores[c]);
-      if (val < 1 || val > 10) {
-        alert(`[Student #${student.student_id}] 점수는 1~10점 사이여야 합니다.`);
-        return;
-      }
+  for (const c of criteria) {
+    const raw = expertScores[c];
+
+    // 1. 진짜 "입력 안함" 체크
+    if (raw === '' || raw === undefined) {
+      alert("점수 입력 필요");
+      return;
     }
+
+    const val = Number(raw);
+
+    // 2. 숫자 체크
+    if (isNaN(val)) {
+      alert("숫자를 입력하세요");
+      return;
+    }
+
+    // 3. 범위 체크
+    if (val < 0 || val > 10) {
+      alert(`[Student #${student.student_id}] 점수는 0~10점 사이여야 합니다.`);
+      return;
+    }
+}
 
     setIsLoading(true);
     setIsAiPanelOpen(true);
@@ -250,10 +262,10 @@ const GradingRow: React.FC<GradingRowProps> = ({
                             <input 
                                 type="number" 
                                 className="score-input"
-                                value={expertScores[criterion] || ''}
+                                value={expertScores[criterion] ?? ''}
                                 onChange={(e) => {
                                     const val = e.target.value;
-                                    if (val === '' || (Number(val) >= 1 && Number(val) <= 10)) {
+                                    if (val === '' || (Number(val) >= 0 && Number(val) <= 10)) {
                                         setExpertScores(prev => ({ ...prev, [criterion]: val }));
                                     }
                                 }}
