@@ -11,8 +11,8 @@ const createFlexiblePattern = (text: string) => {
 
 const normalize = (text: string) => text.replace(/[\s,.?!]+/g, '').trim();
 
-// 색상 팔레트 (항목이 늘어날 경우 순환해서 적용됨)
-const HIGHLIGHT_COLORS = ['#B4C6E7', '#FFE699', '#D5E8D4', '#F8CECC']; // 파랑, 노랑, 초록, 분홍
+// 색상 팔레트
+const HIGHLIGHT_COLORS = ['#B4C6E7', '#FFE699', '#D5E8D4', '#F8CECC', '#E1D5E7','#FAD7AC']; // 파랑, 노랑, 초록, 분홍, 보라, 주황
 
 // ----------------------------------------------------------------------
 // [2] 동적 답안 하이라이터 컴포넌트
