@@ -182,7 +182,14 @@ def get_feedback_rows(conn, project_id):
             JOIN studentDB s 
                 ON f.student_id = s.student_id
             WHERE f.project_id = :project_id
-            ORDER BY s.student_name ASC
+            AND f.created_at = (
+                SELECT MAX(created_at)
+                FROM ai_feedback_log
+                WHERE student_id = f.student_id
+                AND criterion_name = f.criterion_name
+                AND project_id = f.project_id
+            )
+            ORDER BY CAST(s.student_name AS UNSIGNED)
         """),
         {"project_id": project_id}
     ).mappings().all()
@@ -201,7 +208,15 @@ def get_score_rows(conn, project_id):
             JOIN raterDB r 
                 ON sc.rater_uid = r.rater_uid
             WHERE sc.project_id = :project_id
-            ORDER BY s.student_name ASC
+            AND sc.created_at = (
+                SELECT MAX(created_at)
+                FROM scoreDB
+                WHERE student_id = sc.student_id
+                AND rater_uid = sc.rater_uid
+                AND stage = sc.stage
+                AND project_id = sc.project_id
+            )
+            ORDER BY r.rater_name ASC, CAST(s.student_name AS UNSIGNED)
         """),
         {"project_id": project_id}
     ).mappings().all()
