@@ -389,6 +389,7 @@ def export_project_excel(project_name):
                     writer,
                     sheet_name=sheet_name,
                     index=False,
+                    header=False,
                     startrow=2,
                     startcol=start_col_feedback
                 )
@@ -401,8 +402,27 @@ def export_project_excel(project_name):
 
                 for col_idx, col_name in enumerate(df_feedback.columns, start=start_col_feedback + 1):
                     ws.cell(row=2, column=col_idx, value=col_name)
-                    ws.cell(row=1, column=col_idx, value="AI Feedback")
-                    
+                start = start_col_feedback + 1
+                end = start_col_feedback + df_feedback.shape[1]
+
+                ws.cell(row=1, column=start, value="AI Feedback")
+
+                ws.merge_cells(
+                    start_row=1,
+                    start_column=start,
+                    end_row=1,
+                    end_column=end
+                )
+
+                start = start_col_feedback + 1
+
+                for i, col_name in enumerate(df_feedback.columns):
+                    col_idx = start + i
+
+                    # row 2 → 컬럼명
+                    ws.cell(row=2, column=col_idx, value=col_name)
+
+
                 current_top = None
                 start_col = None
 
