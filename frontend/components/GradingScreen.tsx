@@ -257,7 +257,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
                                         setExpertScores(prev => ({ ...prev, [criterion]: val }));
                                     }
                                 }}
-                                min="1" max="10"
+                                min="0" max="10"
                                 disabled={isScoreLocked || isConfirmed}
                             />
                         </div>
