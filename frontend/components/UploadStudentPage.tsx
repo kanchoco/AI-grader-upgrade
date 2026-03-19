@@ -26,8 +26,11 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportProjectInput, setExportProjectInput] = useState("");
+  
+  const MAX_CRITERIA = 6;
 
   const handleAddCriteriaField = () => {
+    if (criteriaList.length >= MAX_CRITERIA) return;
     setCriteriaList([...criteriaList, ""]);
   };
 
@@ -121,6 +124,11 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
     if (filteredCriteria.length === 0) {
       setUploadMessage("판단 항목을 하나 이상 입력해주세요.");
+      return;
+    }
+
+    if (filteredCriteria.length > 6) {
+      setUploadMessage("판단 항목은 최대 6개까지 가능합니다.");
       return;
     }
 
@@ -288,6 +296,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
                     type="button"
                     className="btn btn-primary"
                     onClick={handleAddCriteriaField}
+                    disabled={criteriaList.length >= MAX_CRITERIA}
                   >
                     + 항목 추가
                   </button>
