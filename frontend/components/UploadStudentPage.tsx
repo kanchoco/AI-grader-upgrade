@@ -490,7 +490,7 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
               <label className="modal-label">프로젝트 이름</label>
               <input
                 className="input-field"
-                placeholder="프로젝트 이름 입력"
+                placeholder="예: 2026_final"
                 value={exportProjectInput}
                 onChange={(e) => setExportProjectInput(e.target.value)}
               />

@@ -179,3 +179,34 @@ body {
   background: #4a90e2;
   color: white;
 }
+.modal-box.danger {
+  border-top: 4px solid #e74c3c;
+}
+
+.warning-text {
+  color: #e74c3c;
+  font-weight: 500;
+}
+
+.success-text {
+  color: #2ecc71;
+  font-size: 14px;
+  margin-top: 10px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-secondary {
+  background: #eee;
+  color: #333;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
