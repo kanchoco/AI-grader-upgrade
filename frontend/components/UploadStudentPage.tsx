@@ -429,9 +429,10 @@ const UploadStudentPage: React.FC<UploadProps> = ({ apiUrl, raterId, onLogout })
 
             <h2 className="modal-title">프로젝트 삭제</h2>
 
-            <p className="modal-desc warning-text" style={{ whiteSpace: 'pre-line' }}>
-            {`이 작업은 되돌릴 수 없습니다.
-            삭제하려면 프로젝트 이름을 정확히 입력하세요.`}
+            <p className="modal-desc warning-text">
+              <span>이 작업은 되돌릴 수 없습니다.</span>
+              <br />
+              <span>삭제하려면 프로젝트 이름을 정확히 입력하세요.</span>
             </p>
 
             <div className="modal-input-group">
