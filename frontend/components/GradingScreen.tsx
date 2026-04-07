@@ -1,9 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import './Grading.css';
 
-// ----------------------------------------------------------------------
-// [1] 헬퍼 함수들
-// ----------------------------------------------------------------------
 const createFlexiblePattern = (text: string) => {
   let escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return escaped.replace(/\s+/g, '\\s+');
@@ -12,11 +9,8 @@ const createFlexiblePattern = (text: string) => {
 const normalize = (text: string) => text.replace(/[\s,.?!]+/g, '').trim();
 
 // 색상 팔레트
-const HIGHLIGHT_COLORS = ['#B4C6E7', '#FFE699', '#D5E8D4', '#F8CECC', '#E1D5E7','#FAD7AC']; // 파랑, 노랑, 초록, 분홍, 보라, 주황
+const HIGHLIGHT_COLORS = ['#B4C6E7', '#FFE699', '#D5E8D4', '#F8CECC', '#E1D5E7','#FAD7AC']; 
 
-// ----------------------------------------------------------------------
-// [2] 동적 답안 하이라이터 컴포넌트
-// ----------------------------------------------------------------------
 interface HighlighterProps {
   text: string;
   highlights: { text: string; color: string }[];
@@ -26,7 +20,6 @@ const AnswerHighlighter: React.FC<HighlighterProps> = ({ text, highlights = [] }
   if (!text) return null;
   if (highlights.length === 0) return <span style={{ whiteSpace: 'pre-wrap' }}>{text}</span>;
 
-  // 긴 문장부터 찾도록 정렬
   const targets = [...highlights].sort((a, b) => b.text.length - a.text.length);
   const patternString = `(${targets.map(t => createFlexiblePattern(t.text)).join('|')})`;
   const pattern = new RegExp(patternString, 'g');
@@ -49,9 +42,6 @@ const AnswerHighlighter: React.FC<HighlighterProps> = ({ text, highlights = [] }
   );
 };
 
-// ----------------------------------------------------------------------
-// [3] GradingRow 컴포넌트 (학생 1명분의 채점판)
-// ----------------------------------------------------------------------
 interface GradingRowProps {
   student: any;       
   apiUrl: string;
@@ -82,18 +72,15 @@ const GradingRow: React.FC<GradingRowProps> = ({
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [aiError, setAiError] = useState(false);
 
-  //항목 개수에 비례하는 동적 높이 계산 
-  // 기본 버튼/여백 높이(150) + (항목 개수 * 항목당 높이 75)
   const calculatedHeight = Math.max(280, 150 + (criteria.length * 75));
   const CARD_HEIGHT = `${calculatedHeight}px`;
 
-  // AI 채점 실행
   const handleAiGrade = async () => {
-    // 모든 항목이 입력되었는지 검사
+  const validatedExpertScores: Record<string, number> = {};
+
   for (const c of criteria) {
     const raw = expertScores[c];
 
-    // 1. 진짜 "입력 안함" 체크
     if (raw === '' || raw === undefined) {
       alert("점수 입력 필요");
       return;
@@ -101,19 +88,18 @@ const GradingRow: React.FC<GradingRowProps> = ({
 
     const val = Number(raw);
 
-    // 2. 숫자 체크
     if (isNaN(val)) {
       alert("숫자를 입력하세요");
       return;
     }
 
-    // 3. 범위 체크
     if (val < 0 || val > 10) {
       alert(`[Student #${student.student_id}] 점수는 0~10점 사이여야 합니다.`);
       return;
     }
+  validatedExpertScores[c] = val;
 }
-
+    setExpertScores(validatedExpertScores);
     setIsLoading(true);
     setIsAiPanelOpen(true);
     setIsScoreLocked(true);
@@ -175,9 +161,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
           project_name: projectName,
 
           // 1차 전문가
-          expert_scores: Object.fromEntries(
-            Object.entries(expertScores).map(([k, v]) => [k, Number(v)])
-          ),
+          expert_scores: expertScores,
 
           // 2차 AI
           ai_scores: aiResult.scores,
