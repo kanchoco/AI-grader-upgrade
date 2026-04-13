@@ -181,6 +181,7 @@ def get_feedback_rows(conn, project_id):
                 key_sentence
             FROM (
                 SELECT 
+                    s.student_id,
                     s.student_name,
                     f.criterion_name,
                     f.rationale,
@@ -212,6 +213,7 @@ def get_score_rows(conn, project_id):
             FROM (
                 SELECT 
                     s.student_name,
+                    s.student_id,
                     r.rater_name,
                     sc.stage,
                     sc.scores,
