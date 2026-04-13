@@ -185,7 +185,7 @@ def get_feedback_rows(conn, project_id):
                     f.rationale,
                     f.key_sentence,
                     ROW_NUMBER() OVER (
-                        PARTITION BY f.student_id, f.criterion_name
+                        PARTITION BY f.project_id, f.student_id, f.criterion_name
                         ORDER BY f.created_at DESC
                     ) as rn
                 FROM ai_feedback_log f
@@ -214,7 +214,7 @@ def get_score_rows(conn, project_id):
                     sc.stage,
                     sc.scores,
                     ROW_NUMBER() OVER (
-                        PARTITION BY sc.student_id, sc.rater_uid, sc.stage
+                        PARTITION BY sc.project_id, sc.student_id, sc.rater_uid, sc.stage
                         ORDER BY sc.created_at DESC
                     ) as rn
                 FROM scoreDB sc
