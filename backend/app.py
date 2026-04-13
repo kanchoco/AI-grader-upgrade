@@ -173,23 +173,23 @@ def get_project_id(conn, project_name):
 def get_feedback_rows(conn, project_id):
     return conn.execute(
         sqlalchemy.text("""
-            SELECT 
-                s.student_name,
-                f.criterion_name,
-                f.rationale,
-                f.key_sentence
-            FROM ai_feedback_log f
-            JOIN studentDB s 
-                ON f.student_id = s.student_id
-            WHERE f.project_id = :project_id
-            AND f.created_at = (
-                SELECT MAX(created_at)
-                FROM ai_feedback_log
-                WHERE student_id = f.student_id
-                AND criterion_name = f.criterion_name
-                AND project_id = f.project_id
-            )
-            ORDER BY CAST(s.student_name AS UNSIGNED)
+            SELECT *
+            FROM (
+                SELECT 
+                    s.student_name,
+                    f.criterion_name,
+                    f.rationale,
+                    f.key_sentence,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY f.student_id
+                        ORDER BY f.created_at DESC
+                    ) as rn
+                FROM ai_feedback_log f
+                JOIN studentDB s ON f.student_id = s.student_id
+                WHERE f.project_id = :project_id
+            ) t
+            WHERE t.rn = 1
+            ORDER BY CAST(student_name AS UNSIGNED)
         """),
         {"project_id": project_id}
     ).mappings().all()
@@ -197,26 +197,24 @@ def get_feedback_rows(conn, project_id):
 def get_score_rows(conn, project_id):
     return conn.execute(
         sqlalchemy.text("""
-            SELECT 
-                s.student_name,
-                r.rater_name,
-                sc.stage,
-                sc.scores
-            FROM scoreDB sc
-            JOIN studentDB s 
-                ON sc.student_id = s.student_id
-            JOIN raterDB r 
-                ON sc.rater_uid = r.rater_uid
-            WHERE sc.project_id = :project_id
-            AND sc.created_at = (
-                SELECT MAX(created_at)
-                FROM scoreDB
-                WHERE student_id = sc.student_id
-                AND rater_uid = sc.rater_uid
-                AND stage = sc.stage
-                AND project_id = sc.project_id
-            )
-            ORDER BY r.rater_name ASC, CAST(s.student_name AS UNSIGNED)
+            SELECT *
+            FROM (
+                SELECT 
+                    s.student_name,
+                    r.rater_name,
+                    sc.stage,
+                    sc.scores,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY sc.student_id
+                        ORDER BY sc.created_at DESC
+                    ) as rn
+                FROM scoreDB sc
+                JOIN studentDB s ON sc.student_id = s.student_id
+                JOIN raterDB r ON sc.rater_uid = r.rater_uid
+                WHERE sc.project_id = :project_id
+            ) t
+            WHERE t.rn = 1
+            ORDER BY rater_name ASC, CAST(student_name AS UNSIGNED)
         """),
         {"project_id": project_id}
     ).mappings().all()
