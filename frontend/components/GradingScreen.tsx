@@ -1,5 +1,4 @@
 import React, { useState, useMemo } from 'react';
-import React, { useRef } from "react";
 import './Grading.css';
 
 const createFlexiblePattern = (text: string) => {
@@ -57,7 +56,6 @@ const GradingRow: React.FC<GradingRowProps> = ({
   student, apiUrl, raterUid, raterId, projectName, criteria, isLast 
 }) => {
   const [expertScores, setExpertScores] = useState<{ [key: string]: string }>({});
-  const [finalScores, setFinalScores] = useState<{ [key: string]: string }>({});
   const [firstExpertScores, setFirstExpertScores] = useState<Record<string, number> | null>(null);
 
   type AIResult = {
@@ -161,7 +159,6 @@ const GradingRow: React.FC<GradingRowProps> = ({
     const newFinalScores = Object.fromEntries(
       Object.entries(expertScores).map(([k, v]) => [k, String(v)])
     );
-    setFinalScores(newFinalScores);
 
     try {
       const res = await fetch(`${apiUrl}/add_final_score`, {
