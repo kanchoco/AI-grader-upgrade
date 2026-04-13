@@ -299,7 +299,7 @@ def export_project_excel(project_name):
         merged = defaultdict(lambda: defaultdict(dict))
 
         for row in score_rows:
-            key = row["student_id"]
+            key = row["student_uid"]
             scores = json.loads(row["scores"])
 
             for criterion, value in scores.items():
@@ -331,7 +331,7 @@ def export_project_excel(project_name):
         feedback_map = defaultdict(dict)
 
         for f in feedback_rows:
-            key = (f["student_id"], f["criterion_name"])
+            key = (f["student_uid"], f["criterion_name"])
             feedback_map[key]["rationale"] = format_text(f["rationale"])
             feedback_map[key]["keysentence"] = format_text(f["key_sentence"])
 
