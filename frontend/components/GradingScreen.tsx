@@ -99,10 +99,11 @@ const GradingRow: React.FC<GradingRowProps> = ({
         alert(`[Student #${student.student_id}] 점수는 0~10점 사이여야 합니다.`);
         return;
       }
+      validatedExpertScores[c] = val;
+      
       if (!firstExpertScores) {
         setFirstExpertScores({ ...validatedExpertScores });
       }
-    validatedExpertScores[c] = val;
 }
     setExpertScores(
       Object.fromEntries(
