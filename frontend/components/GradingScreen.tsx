@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import React, { useRef } from "react";
 import './Grading.css';
 
 const createFlexiblePattern = (text: string) => {
@@ -57,7 +58,8 @@ const GradingRow: React.FC<GradingRowProps> = ({
 }) => {
   const [expertScores, setExpertScores] = useState<{ [key: string]: string }>({});
   const [finalScores, setFinalScores] = useState<{ [key: string]: string }>({});
-  
+  const [firstExpertScores, setFirstExpertScores] = useState<Record<string, number> | null>(null);
+
   type AIResult = {
     scores: Record<string, number>;
     rationales: Record<string, string[]>;
@@ -76,29 +78,33 @@ const GradingRow: React.FC<GradingRowProps> = ({
   const calculatedHeight = Math.max(280, 150 + (criteria.length * 75));
   const CARD_HEIGHT = `${calculatedHeight}px`;
 
+  
   const handleAiGrade = async () => {
-  const validatedExpertScores: Record<string, number> = {};
+    const validatedExpertScores: Record<string, number> = {};
 
-  for (const c of criteria) {
-    const raw = expertScores[c];
+    for (const c of criteria) {
+      const raw = expertScores[c];
 
-    if (raw === '' || raw === undefined) {
-      alert("점수 입력 필요");
-      return;
-    }
+      if (raw === '' || raw === undefined) {
+        alert("점수 입력 필요");
+        return;
+      }
 
-    const val = Number(raw);
+      const val = Number(raw);
 
-    if (isNaN(val)) {
-      alert("숫자를 입력하세요");
-      return;
-    }
+      if (isNaN(val)) {
+        alert("숫자를 입력하세요");
+        return;
+      }
 
-    if (val < 0 || val > 10) {
-      alert(`[Student #${student.student_id}] 점수는 0~10점 사이여야 합니다.`);
-      return;
-    }
-  validatedExpertScores[c] = val;
+      if (val < 0 || val > 10) {
+        alert(`[Student #${student.student_id}] 점수는 0~10점 사이여야 합니다.`);
+        return;
+      }
+      if (!firstExpertScores) {
+        setFirstExpertScores({ ...validatedExpertScores });
+      }
+    validatedExpertScores[c] = val;
 }
     setExpertScores(
       Object.fromEntries(
@@ -152,11 +158,11 @@ const GradingRow: React.FC<GradingRowProps> = ({
     if (!window.confirm(`Student #${student.student_name} 점수를 최종 확정하시겠습니까? (수정 불가)`)) {
         return;
     }
-    setFinalScores(
-      Object.fromEntries(
-        Object.entries(expertScores).map(([k, v]) => [k, String(v)])
-      )
+    const newFinalScores = Object.fromEntries(
+      Object.entries(expertScores).map(([k, v]) => [k, String(v)])
     );
+    setFinalScores(newFinalScores);
+
     try {
       const res = await fetch(`${apiUrl}/add_final_score`, {
         method: 'POST',
@@ -170,13 +176,13 @@ const GradingRow: React.FC<GradingRowProps> = ({
           project_name: projectName,
 
           // 1차 전문가
-          expert_scores: expertScores,
+          expert_scores: firstExpertScores,
 
           // 2차 AI
           ai_scores: aiResult.scores,
 
           // 3차 최종 (사람 수정)
-          final_scores: finalScores
+          final_scores: newFinalScores
         }),
       });
 
