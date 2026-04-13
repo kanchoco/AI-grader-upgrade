@@ -173,7 +173,11 @@ def get_project_id(conn, project_name):
 def get_feedback_rows(conn, project_id):
     return conn.execute(
         sqlalchemy.text("""
-            SELECT *
+            SELECT 
+                student_name,
+                criterion_name,
+                rationale,
+                key_sentence
             FROM (
                 SELECT 
                     s.student_name,
@@ -181,11 +185,12 @@ def get_feedback_rows(conn, project_id):
                     f.rationale,
                     f.key_sentence,
                     ROW_NUMBER() OVER (
-                        PARTITION BY f.student_id
+                        PARTITION BY f.student_id, f.criterion_name
                         ORDER BY f.created_at DESC
                     ) as rn
                 FROM ai_feedback_log f
-                JOIN studentDB s ON f.student_id = s.student_id
+                JOIN studentDB s 
+                    ON f.student_id = s.student_id
                 WHERE f.project_id = :project_id
             ) t
             WHERE t.rn = 1
@@ -197,7 +202,11 @@ def get_feedback_rows(conn, project_id):
 def get_score_rows(conn, project_id):
     return conn.execute(
         sqlalchemy.text("""
-            SELECT *
+            SELECT 
+                student_name,
+                rater_name,
+                stage,
+                scores
             FROM (
                 SELECT 
                     s.student_name,
@@ -205,12 +214,14 @@ def get_score_rows(conn, project_id):
                     sc.stage,
                     sc.scores,
                     ROW_NUMBER() OVER (
-                        PARTITION BY sc.student_id
+                        PARTITION BY sc.student_id, sc.rater_uid, sc.stage
                         ORDER BY sc.created_at DESC
                     ) as rn
                 FROM scoreDB sc
-                JOIN studentDB s ON sc.student_id = s.student_id
-                JOIN raterDB r ON sc.rater_uid = r.rater_uid
+                JOIN studentDB s 
+                    ON sc.student_id = s.student_id
+                JOIN raterDB r 
+                    ON sc.rater_uid = r.rater_uid
                 WHERE sc.project_id = :project_id
             ) t
             WHERE t.rn = 1
