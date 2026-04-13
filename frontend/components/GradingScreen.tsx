@@ -56,6 +56,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
   student, apiUrl, raterUid, raterId, projectName, criteria, isLast 
 }) => {
   const [expertScores, setExpertScores] = useState<{ [key: string]: string }>({});
+  const [finalScores, setFinalScores] = useState<{ [key: string]: string }>({});
   
   type AIResult = {
     scores: Record<string, number>;
@@ -99,7 +100,11 @@ const GradingRow: React.FC<GradingRowProps> = ({
     }
   validatedExpertScores[c] = val;
 }
-    setExpertScores(validatedExpertScores);
+    setExpertScores(
+      Object.fromEntries(
+        Object.entries(validatedExpertScores).map(([k, v]) => [k, String(v)])
+      )
+    );
     setIsLoading(true);
     setIsAiPanelOpen(true);
     setIsScoreLocked(true);
@@ -147,7 +152,11 @@ const GradingRow: React.FC<GradingRowProps> = ({
     if (!window.confirm(`Student #${student.student_name} 점수를 최종 확정하시겠습니까? (수정 불가)`)) {
         return;
     }
-
+    setFinalScores(
+      Object.fromEntries(
+        Object.entries(expertScores).map(([k, v]) => [k, String(v)])
+      )
+    );
     try {
       const res = await fetch(`${apiUrl}/add_final_score`, {
         method: 'POST',
@@ -167,9 +176,7 @@ const GradingRow: React.FC<GradingRowProps> = ({
           ai_scores: aiResult.scores,
 
           // 3차 최종 (사람 수정)
-          final_scores: Object.fromEntries(
-            Object.entries(expertScores).map(([k, v]) => [k, Number(v)])
-          )
+          final_scores: finalScores
         }),
       });
 

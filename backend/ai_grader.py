@@ -12,7 +12,7 @@ MODEL_VERSION = "gemini-2.5-flash"
 model = genai.GenerativeModel(
     MODEL_VERSION,
     generation_config={
-        "temperature": 0,
+        "temperature": 0.4,
         "top_k": 40,
         "top_p": 0.9,
         "candidate_count": 1,
