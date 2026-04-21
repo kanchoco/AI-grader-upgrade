@@ -345,7 +345,7 @@ def export_project_excel(project_name):
 
         feedback_dict = defaultdict(dict)
 
-        for (student, criterion), fb in feedback_map.items():
+        for (student, rater, criterion), fb in feedback_map.items():
             feedback_dict[(student, rater)]["student_name"] = student
             feedback_dict[(student, rater)]["rater_name"] = rater
             feedback_dict[student][f"{criterion}_rationale"] = fb.get("rationale", "")
