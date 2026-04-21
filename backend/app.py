@@ -176,7 +176,7 @@ def get_feedback_rows(conn, project_id):
             SELECT 
                 student_id,
                 student_name,
-                rater_name
+                rater_name,
                 criterion_name,
                 rationale,
                 key_sentence
