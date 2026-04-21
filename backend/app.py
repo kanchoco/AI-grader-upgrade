@@ -348,8 +348,8 @@ def export_project_excel(project_name):
         for (student, rater, criterion), fb in feedback_map.items():
             feedback_dict[(student, rater)]["student_name"] = student
             feedback_dict[(student, rater)]["rater_name"] = rater
-            feedback_dict[student][f"{criterion}_rationale"] = fb.get("rationale", "")
-            feedback_dict[student][f"{criterion}_keysentence"] = fb.get("keysentence", "")
+            feedback_dict[student, rater][f"{criterion}_rationale"] = fb.get("rationale", "")
+            feedback_dict[student, rater][f"{criterion}_keysentence"] = fb.get("keysentence", "")
 
         df_feedback_all = pd.DataFrame(feedback_dict.values())
 
