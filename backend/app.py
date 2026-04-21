@@ -183,16 +183,19 @@ def get_feedback_rows(conn, project_id):
                 SELECT 
                     s.student_id,
                     s.student_name,
+                    r.rater_name,
                     f.criterion_name,
                     f.rationale,
                     f.key_sentence,
                     ROW_NUMBER() OVER (
-                        PARTITION BY f.project_id, f.student_id, f.criterion_name
+                        PARTITION BY f.project_id, f.student_id, f.rater_uid, f.criterion_name
                         ORDER BY f.created_at DESC
                     ) as rn
                 FROM ai_feedback_log f
                 JOIN studentDB s 
                     ON f.student_id = s.student_id
+                JOIN raterDB r 
+                    ON f.rater_uid = r.rater_uid
                 WHERE f.project_id = :project_id
             ) t
             WHERE t.rn = 1
@@ -335,14 +338,15 @@ def export_project_excel(project_name):
         feedback_map = defaultdict(dict)
 
         for f in feedback_rows:
-            key = (f["student_name"], f["criterion_name"])
+            key = (f["student_name"], f["rater_name"], f["criterion_name"])
             feedback_map[key]["rationale"] = format_text(f["rationale"])
             feedback_map[key]["keysentence"] = format_text(f["key_sentence"])
 
         feedback_dict = defaultdict(dict)
 
         for (student, criterion), fb in feedback_map.items():
-            feedback_dict[student]["student_name"] = student
+            feedback_dict[(student, rater)]["student_name"] = student
+            feedback_dict[(student, rater)]["rater_name"] = rater
             feedback_dict[student][f"{criterion}_rationale"] = fb.get("rationale", "")
             feedback_dict[student][f"{criterion}_keysentence"] = fb.get("keysentence", "")
 
@@ -398,8 +402,9 @@ def export_project_excel(project_name):
                 students = [row["student_name"] for row in data]
 
                 df_feedback = df_feedback_all[
-                    df_feedback_all["student_name"].isin(students)
-                ].copy()
+                    (df_feedback_all["student_name"].isin(students)) &
+                    (df_feedback_all["rater_name"] == rater)
+                ]
 
                 if not df_feedback.empty:
                     df_feedback = df_feedback[sort_feedback_columns(df_feedback.columns)]
