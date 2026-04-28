@@ -13,7 +13,7 @@ model = genai.GenerativeModel(
     MODEL_VERSION,
     generation_config={
         "temperature": 0,
-        "top_k": 60,
+        "top_k": 70,
         "top_p": 0.9,
         "candidate_count": 1,
         "response_mime_type": "application/json"
